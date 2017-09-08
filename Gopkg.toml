@@ -1,0 +1,70 @@
+
+# Gopkg.toml example
+#
+# Refer to https://github.com/golang/dep/blob/master/docs/Gopkg.toml.md
+# for detailed Gopkg.toml documentation.
+#
+# required = ["github.com/user/thing/cmd/thing"]
+# ignored = ["github.com/user/project/pkgX", "bitbucket.org/user/project/pkgA/pkgY"]
+#
+# [[constraint]]
+#   name = "github.com/user/project"
+#   version = "1.0.0"
+#
+# [[constraint]]
+#   name = "github.com/user/project2"
+#   branch = "dev"
+#   source = "github.com/myfork/project2"
+#
+# [[override]]
+#  name = "github.com/x/y"
+#  version = "2.4.0"
+
+
+[[constraint]]
+  branch = "btcatomicswap"
+  name = "github.com/btcsuite/btcd"
+  source = "github.com/jrick/btcd"
+
+[[constraint]]
+  branch = "master"
+  name = "github.com/btcsuite/btcutil"
+
+[[constraint]]
+  branch = "master"
+  name = "github.com/btcsuite/btcwallet"
+
+[[constraint]]
+  branch = "master"
+  name = "github.com/decred/dcrd"
+
+[[constraint]]
+  branch = "master"
+  name = "github.com/decred/dcrutil"
+
+[[constraint]]
+  branch = "master"
+  name = "github.com/decred/dcrwallet"
+
+[[constraint]]
+  branch = "ltcatomicswap"
+  name = "github.com/ltcsuite/ltcd"
+  source = "github.com/jrick/btcd"
+
+[[constraint]]
+  branch = "ltcamounts"
+  name = "github.com/ltcsuite/ltcutil"
+  source = "github.com/jrick/btcutil"
+
+[[constraint]]
+  branch = "ltcdeps"
+  name = "github.com/ltcsuite/ltcwallet"
+  source = "github.com/jrick/btcwallet"
+
+[[constraint]]
+  branch = "master"
+  name = "golang.org/x/crypto"
+
+[[constraint]]
+  name = "google.golang.org/grpc"
+  version = "1.6.0"
