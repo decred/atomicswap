@@ -19,6 +19,20 @@ README in its entirety before attempting to use these tools.  The sections below
 explain the principles on which the tools operate, the instructions for how to
 use them safely, and an example swap between Decred and Bitcoin.
 
+## Build instructions
+
+Pre-requirements:
+
+  - Go 1.9 or later
+  - [dep](https://github.com/golang/dep)
+
+```
+$ cd $GOPATH/src/github.com/decred
+$ git clone https://github.com/decred/atomicswap && cd atomicswap
+$ dep ensure
+$ go install ./cmd/...
+```
+
 ## Theory
 
 A cross-chain swap is a trade between two users of different cryptocurrencies.
