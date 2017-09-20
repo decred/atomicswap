@@ -455,6 +455,30 @@ func getFeePerKb(c *rpc.Client) (btcutil.Amount, error) {
 	return btcutil.NewAmount(info.RelayFee)
 }
 
+// getRawChangeAddress calls the getrawchangeaddress JSON-RPC method.  It is
+// implemented manually as the rpcclient implementation always passes the
+// account parameter which was removed in Bitcoin Core 0.15.
+func getRawChangeAddress(c *rpc.Client) (btcutil.Address, error) {
+	rawResp, err := c.RawRequest("getrawchangeaddress", nil)
+	if err != nil {
+		return nil, err
+	}
+	var addrStr string
+	err = json.Unmarshal(rawResp, &addrStr)
+	if err != nil {
+		return nil, err
+	}
+	addr, err := btcutil.DecodeAddress(addrStr, chainParams)
+	if err != nil {
+		return nil, err
+	}
+	if !addr.IsForNet(chainParams) {
+		return nil, fmt.Errorf("address %v is not intended for use on %v",
+			addrStr, chainParams.Name)
+	}
+	return addr, nil
+}
+
 func promptPublishTx(c *rpc.Client, tx *wire.MsgTx, name string) error {
 	reader := bufio.NewReader(os.Stdin)
 	for {
@@ -508,7 +532,7 @@ type builtContract struct {
 // wallet RPC to generate an internal address to redeem the refund and to sign
 // the payment to the contract transaction.
 func buildContract(c *rpc.Client, args *contractArgs) (*builtContract, error) {
-	refundAddr, err := c.GetRawChangeAddress("")
+	refundAddr, err := getRawChangeAddress(c)
 	if err != nil {
 		return nil, fmt.Errorf("getrawchangeaddress: %v", err)
 	}
@@ -561,7 +585,7 @@ func buildContract(c *rpc.Client, args *contractArgs) (*builtContract, error) {
 		}
 	}
 
-	refundAddress, err := c.GetRawChangeAddress("")
+	refundAddress, err := getRawChangeAddress(c)
 	if err != nil {
 		return nil, fmt.Errorf("getrawchangeaddress: %v", err)
 	}
@@ -738,7 +762,7 @@ func (cmd *redeemCmd) runCommand(c *rpc.Client) error {
 		return errors.New("transaction does not contain a contract output")
 	}
 
-	addr, err := c.GetRawChangeAddress("")
+	addr, err := getRawChangeAddress(c)
 	if err != nil {
 		return fmt.Errorf("getrawchangeaddres: %v", err)
 	}
