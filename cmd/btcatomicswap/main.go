@@ -423,36 +423,43 @@ func fundRawTransaction(c *rpc.Client, tx *wire.MsgTx, feePerKb btcutil.Amount) 
 	return fundedTx, feeAmount, nil
 }
 
-// getFeePerKb queries the wallet for the transaction relay fee/kB to use.  It
-// first tries to get the user-set fee in the wallet.  If unset, it attempts to
-// find an estimate using estimatefee 6.  If both of these fail, it falls back
-// to mempool relay fee policy.
-func getFeePerKb(c *rpc.Client) (btcutil.Amount, error) {
+// getFeePerKb queries the wallet for the transaction relay fee/kB to use and
+// the minimum mempool relay fee.  It first tries to get the user-set fee in the
+// wallet.  If unset, it attempts to find an estimate using estimatefee 6.  If
+// both of these fail, it falls back to mempool relay fee policy.
+func getFeePerKb(c *rpc.Client) (useFee, relayFee btcutil.Amount, err error) {
 	info, err := c.GetInfo()
 	if err != nil {
-		return 0, fmt.Errorf("getinfo: %v", err)
+		return 0, 0, fmt.Errorf("getinfo: %v", err)
+	}
+	relayFee, err = btcutil.NewAmount(info.RelayFee)
+	if err != nil {
+		return 0, 0, err
 	}
 	maxFee := info.PaytxFee
 	if info.PaytxFee != 0 {
 		if info.RelayFee > maxFee {
 			maxFee = info.RelayFee
 		}
-		return btcutil.NewAmount(maxFee)
+		useFee, err = btcutil.NewAmount(maxFee)
+		return useFee, relayFee, err
 	}
 
 	params := []json.RawMessage{[]byte("6")}
 	estimateRawResp, err := c.RawRequest("estimatefee", params)
 	if err != nil {
-		return 0, err
+		return 0, 0, err
 	}
 	var estimateResp float64 = -1
 	err = json.Unmarshal(estimateRawResp, &estimateResp)
 	if err == nil && estimateResp != -1 {
-		return btcutil.NewAmount(estimateResp)
+		useFee, err = btcutil.NewAmount(estimateResp)
+		return useFee, relayFee, err
 	}
 
 	fmt.Println("warning: falling back to mempool relay fee policy")
-	return btcutil.NewAmount(info.RelayFee)
+	useFee, err = btcutil.NewAmount(info.RelayFee)
+	return useFee, relayFee, err
 }
 
 // getRawChangeAddress calls the getrawchangeaddress JSON-RPC method.  It is
@@ -557,7 +564,7 @@ func buildContract(c *rpc.Client, args *contractArgs) (*builtContract, error) {
 		return nil, err
 	}
 
-	feePerKb, err := getFeePerKb(c)
+	feePerKb, minFeePerKb, err := getFeePerKb(c)
 	if err != nil {
 		return nil, err
 	}
@@ -600,7 +607,7 @@ func buildContract(c *rpc.Client, args *contractArgs) (*builtContract, error) {
 	refundSize := estimateRefundSerializeSize(contract, refundTx.TxOut)
 	refundFee := txrules.FeeForSerializeSize(feePerKb, refundSize)
 	refundTx.TxOut[0].Value = int64(args.amount - refundFee)
-	if txrules.IsDustOutput(refundTx.TxOut[0], feePerKb) {
+	if txrules.IsDustOutput(refundTx.TxOut[0], minFeePerKb) {
 		return nil, fmt.Errorf("refund output value of %v is dust", btcutil.Amount(refundTx.TxOut[0].Value))
 	}
 
@@ -777,7 +784,7 @@ func (cmd *redeemCmd) runCommand(c *rpc.Client) error {
 		Index: uint32(contractOut),
 	}
 
-	feePerKb, err := getFeePerKb(c)
+	feePerKb, minFeePerKb, err := getFeePerKb(c)
 	if err != nil {
 		return err
 	}
@@ -789,7 +796,7 @@ func (cmd *redeemCmd) runCommand(c *rpc.Client) error {
 	redeemSize := estimateRedeemSerializeSize(cmd.contract, redeemTx.TxOut)
 	fee := txrules.FeeForSerializeSize(feePerKb, redeemSize)
 	redeemTx.TxOut[0].Value = cmd.contractTx.TxOut[contractOut].Value - int64(fee)
-	if txrules.IsDustOutput(redeemTx.TxOut[0], feePerKb) {
+	if txrules.IsDustOutput(redeemTx.TxOut[0], minFeePerKb) {
 		return fmt.Errorf("redeem output value of %v is dust", btcutil.Amount(redeemTx.TxOut[0].Value))
 	}
 
