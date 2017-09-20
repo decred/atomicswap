@@ -22,9 +22,8 @@
 
 
 [[constraint]]
-  branch = "btcatomicswap"
+  branch = "master"
   name = "github.com/btcsuite/btcd"
-  source = "github.com/jrick/btcd"
 
 [[constraint]]
   branch = "master"

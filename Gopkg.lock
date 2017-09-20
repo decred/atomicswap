@@ -8,11 +8,10 @@
   revision = "5312a61534124124185d41f09206b9fef1d88403"
 
 [[projects]]
-  branch = "btcatomicswap"
+  branch = "master"
   name = "github.com/btcsuite/btcd"
   packages = ["btcec","btcjson","chaincfg","chaincfg/chainhash","rpcclient","txscript","wire"]
-  revision = "78e5c5fa78a45b36ad39bb5d11efaa0b18eb4f36"
-  source = "github.com/jrick/btcd"
+  revision = "4803a8291c92a1d2d41041b942a9a9e37deab065"
 
 [[projects]]
   branch = "master"
@@ -140,6 +139,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "664aa29b25534ad680a5ee88c63f4aceeec834eadc57ad45bf69b0079e654864"
+  inputs-digest = "bed7de4b3c807980a327e32ccb1393629c591d73c8297124dcbca3b820fe65a8"
   solver-name = "gps-cdcl"
   solver-version = 1
