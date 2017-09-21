@@ -397,6 +397,15 @@ links to the four raw transactions published in the example:
 | Litecoin contract created by B | [550d1b2851f6f104e380aa3c2810ac272f8b6918140547c9717a78b1f4ff3469](https://insight.litecore.io/tx/550d1b2851f6f104e380aa3c2810ac272f8b6918140547c9717a78b1f4ff3469) |
 | A's Litecoin redemption | [6c27cffab8a86f1b3be1ebe7acfbbbdcb82542c5cfe7880fcca60eab36747037](https://insight.litecore.io/tx/6c27cffab8a86f1b3be1ebe7acfbbbdcb82542c5cfe7880fcca60eab36747037) |
 | B's Decred redemption | [49245425967b7e39c1eb27d261c7fe972675cccacff19ae9cc21f434ccddd986](https://mainnet.decred.org/tx/49245425967b7e39c1eb27d261c7fe972675cccacff19ae9cc21f434ccddd986) |
+
+## First mainnet DCR-BTC atomic swap
+
+| Description | Link to raw transaction |
+| - | - |
+| Decred contract created by A | [bb9a36901e7d085036e0be06db969a1b40379b3f242fbcea9b6ee31f8d36d4a4](https://mainnet.decred.org/tx/bb9a36901e7d085036e0be06db969a1b40379b3f242fbcea9b6ee31f8d36d4a4) |
+| Bitcoin contract created by B | [ba44044ee76e06f69c97a36a3afc6db888b6aef85bf8f5422885d891e8dcb08c](https://blockchain.info/tx/ba44044ee76e06f69c97a36a3afc6db888b6aef85bf8f5422885d891e8dcb08c) |
+| A's Bitcoin redemption | [6a86a8bab0f63e0c8d6a1b18f3fb53230b3252b58e901111bf72a1fc968dfbf0](https://blockchain.info/tx/6a86a8bab0f63e0c8d6a1b18f3fb53230b3252b58e901111bf72a1fc968dfbf0) |
+| B's Decred redemption | [0599d909a47c35f282d790c9a539ac609678e5320401d1d912b3d9603fbeff7f](https://mainnet.decred.org/tx/0599d909a47c35f282d790c9a539ac609678e5320401d1d912b3d9603fbeff7f) |
 ## License
 
 These tools are licensed under the [copyfree](http://copyfree.org) ISC License.
