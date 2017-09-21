@@ -573,7 +573,7 @@ func buildContract(c *rpc.Client, args *contractArgs) (*builtContract, error) {
 	unsignedContract.AddTxOut(wire.NewTxOut(int64(args.amount), contractP2SHPkScript))
 	unsignedContract, contractFee, err := fundRawTransaction(c, unsignedContract, feePerKb)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("fundrawtransaction: %v", err)
 	}
 	contractTx, complete, err := c.SignRawTransaction(unsignedContract)
 	if err != nil {
