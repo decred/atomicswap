@@ -25,6 +25,7 @@ Pre-requirements:
 
   - Go 1.9 or later
   - [dep](https://github.com/golang/dep)
+  - Latest `dcrwallet` built from master (for `dcratomicswap`)
 
 ```
 $ cd $GOPATH/src/github.com/decred
