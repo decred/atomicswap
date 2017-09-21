@@ -454,6 +454,9 @@ func getFeePerKb(c *rpc.Client) (useFee, relayFee ltcutil.Amount, err error) {
 	err = json.Unmarshal(estimateRawResp, &estimateResp)
 	if err == nil && estimateResp != -1 {
 		useFee, err = ltcutil.NewAmount(estimateResp)
+		if relayFee > useFee {
+			useFee = relayFee
+		}
 		return useFee, relayFee, err
 	}
 
