@@ -918,7 +918,12 @@ func (cmd *auditContractCmd) runOfflineCommand() error {
 	if pushes.LockTime >= int64(txscript.LockTimeThreshold) {
 		t := time.Unix(pushes.LockTime, 0)
 		fmt.Printf("Locktime: %v\n", t.UTC())
-		fmt.Printf("Locktime reached in %v\n", time.Until(t).Truncate(time.Second))
+		reachedAt := time.Until(t).Truncate(time.Second)
+		if reachedAt > 0 {
+			fmt.Printf("Locktime reached in %v\n", reachedAt)
+		} else {
+			fmt.Printf("Contract refund time lock has expired\n")
+		}
 	} else {
 		fmt.Printf("Locktime: block %v\n", pushes.LockTime)
 	}
