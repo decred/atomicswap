@@ -102,6 +102,24 @@
 
 [[projects]]
   branch = "master"
+  name = "github.com/particl/partsuite_partd"
+  packages = ["btcec","btcjson","chaincfg","chaincfg/chainhash","rpcclient","txscript","wire"]
+  revision = "19ee3c9d208d87a11cad892163b54106af847921"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/particl/partsuite_partutil"
+  packages = [".","base58","bech32"]
+  revision = "117d65fa91c030e875ea5698d99b66258c5684d4"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/particl/partsuite_partwallet"
+  packages = ["wallet/txrules"]
+  revision = "970e161f293ff12ebbadae51db1f9d47f7414967"
+
+[[projects]]
+  branch = "master"
   name = "github.com/vertcoin/vtcd"
   packages = ["btcec","btcjson","chaincfg","chaincfg/chainhash","rpcclient","txscript","wire"]
   revision = "15387ac36fe71840d251e71f4c81110c793e3b9e"
@@ -157,6 +175,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "bb788a88573ea1c43e7f870bbdec56dde139c8f862084d1612da0914a5fc0d43"
+  inputs-digest = "cf9373df2e658d00b7f8ca09ac087f26f56ee593ab786b80d8166efd3720f171"
   solver-name = "gps-cdcl"
   solver-version = 1
