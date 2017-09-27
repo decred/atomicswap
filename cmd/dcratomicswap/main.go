@@ -91,6 +91,7 @@ func init() {
 		fmt.Println("  initiate <participant address> <amount>")
 		fmt.Println("  participate <initiator address> <amount> <secret hash>")
 		fmt.Println("  redeem <contract> <contract transaction> <secret>")
+		fmt.Println("  refund <contract> <contract transaction>")
 		fmt.Println("  extractsecret <redemption transaction> <secret hash>")
 		fmt.Println("  auditcontract <contract> <contract transaction>")
 		fmt.Println()
@@ -124,6 +125,11 @@ type redeemCmd struct {
 	contract   []byte
 	contractTx *wire.MsgTx
 	secret     []byte
+}
+
+type refundCmd struct {
+	contract   []byte
+	contractTx *wire.MsgTx
 }
 
 type extractSecretCmd struct {
@@ -175,6 +181,8 @@ func run() (err error, showUsage bool) {
 		cmdArgs = 3
 	case "redeem":
 		cmdArgs = 3
+	case "refund":
+		cmdArgs = 2
 	case "extractsecret":
 		cmdArgs = 2
 	case "auditcontract":
@@ -277,6 +285,24 @@ func run() (err error, showUsage bool) {
 		}
 
 		cmd = &redeemCmd{contract: contract, contractTx: &contractTx, secret: secret}
+
+	case "refund":
+		contract, err := hex.DecodeString(args[1])
+		if err != nil {
+			return fmt.Errorf("failed to decode contract: %v", err), true
+		}
+
+		contractTxBytes, err := hex.DecodeString(args[2])
+		if err != nil {
+			return fmt.Errorf("failed to decode contract transaction: %v", err), true
+		}
+		var contractTx wire.MsgTx
+		err = contractTx.Deserialize(bytes.NewReader(contractTxBytes))
+		if err != nil {
+			return fmt.Errorf("failed to decode contract transaction: %v", err), true
+		}
+
+		cmd = &refundCmd{contract: contract, contractTx: &contractTx}
 
 	case "extractsecret":
 		redemptionTxBytes, err := hex.DecodeString(args[1])
@@ -486,39 +512,86 @@ func buildContract(ctx context.Context, c pb.WalletServiceClient, args *contract
 	}
 
 	contractTxHash := contractTx.TxHash()
-	contractOutPoint := wire.OutPoint{Hash: contractTxHash}
+
+	refundTx, refundFee, err := buildRefund(ctx, c, contract, &contractTx,
+		feePerKb, passphrase)
+	if err != nil {
+		return nil, err
+	}
+
+	return &builtContract{
+		contract,
+		contractP2SH,
+		&contractTxHash,
+		&contractTx,
+		contractFee,
+		refundTx,
+		refundFee,
+	}, nil
+}
+
+func buildRefund(ctx context.Context, c pb.WalletServiceClient, contract []byte, contractTx *wire.MsgTx,
+	feePerKb dcrutil.Amount, passphrase []byte) (
+	refundTx *wire.MsgTx, refundFee dcrutil.Amount, err error) {
+
+	contractP2SH, err := dcrutil.NewAddressScriptHash(contract, chainParams)
+	if err != nil {
+		return nil, 0, err
+	}
+	contractP2SHPkScript, err := txscript.PayToAddrScript(contractP2SH)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	contractTxHash := contractTx.TxHash()
+	contractOutPoint := wire.OutPoint{Hash: contractTxHash, Index: ^uint32(0)}
 	for i, o := range contractTx.TxOut {
 		if bytes.Equal(o.PkScript, contractP2SHPkScript) {
 			contractOutPoint.Index = uint32(i)
 			break
 		}
 	}
+	if contractOutPoint.Index == ^uint32(0) {
+		return nil, 0, errors.New("contract tx does not contain a P2SH contract payment")
+	}
 
-	nar, err = c.NextAddress(ctx, &pb.NextAddressRequest{
+	nar, err := c.NextAddress(ctx, &pb.NextAddressRequest{
 		Account:   0, // TODO
 		Kind:      pb.NextAddressRequest_BIP0044_INTERNAL,
 		GapPolicy: pb.NextAddressRequest_GAP_POLICY_WRAP,
 	})
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 	refundAddress, err := dcrutil.DecodeAddress(nar.Address)
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 	refundOutScript, err := txscript.PayToAddrScript(refundAddress)
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 
-	refundTx := wire.NewMsgTx()
-	refundTx.LockTime = uint32(args.locktime)
+	pushes, err := txscript.ExtractAtomicSwapDataPushes(0, contract)
+	if err != nil {
+		// expected to only be called with good input
+		panic(err)
+	}
+
+	refundAddr, err := dcrutil.NewAddressPubKeyHash(pushes.RefundHash160[:], chainParams,
+		chainec.ECTypeSecp256k1)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	refundTx = wire.NewMsgTx()
+	refundTx.LockTime = uint32(pushes.LockTime)
 	refundTx.AddTxOut(wire.NewTxOut(0, refundOutScript)) // amount set below
 	refundSize := estimateRefundSerializeSize(contract, refundTx.TxOut)
-	refundFee := txrules.FeeForSerializeSize(feePerKb, refundSize)
-	refundTx.TxOut[0].Value = int64(args.amount - refundFee)
+	refundFee = txrules.FeeForSerializeSize(feePerKb, refundSize)
+	refundTx.TxOut[0].Value = contractTx.TxOut[contractOutPoint.Index].Value - int64(refundFee)
 	if txrules.IsDustOutput(refundTx.TxOut[0], feePerKb) {
-		return nil, fmt.Errorf("refund output value of %v is dust", dcrutil.Amount(refundTx.TxOut[0].Value))
+		return nil, 0, fmt.Errorf("refund output value of %v is dust", dcrutil.Amount(refundTx.TxOut[0].Value))
 	}
 
 	txIn := wire.NewTxIn(&contractOutPoint, nil)
@@ -538,12 +611,12 @@ func buildContract(ctx context.Context, c pb.WalletServiceClient, args *contract
 		PreviousPkScript:      contract,
 	})
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 	refundSigScript, err := refundP2SHContract(contract, refundSig.Signature,
 		refundSig.PublicKey)
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 	refundTx.TxIn[0].SignatureScript = refundSigScript
 
@@ -560,15 +633,7 @@ func buildContract(ctx context.Context, c pb.WalletServiceClient, args *contract
 		}
 	}
 
-	return &builtContract{
-		contract,
-		contractP2SH,
-		&contractTxHash,
-		&contractTx,
-		contractFee,
-		refundTx,
-		refundFee,
-	}, nil
+	return refundTx, refundFee, nil
 }
 
 func ripemd160Hash(x []byte) []byte {
@@ -790,6 +855,40 @@ func (cmd *redeemCmd) runCommand(ctx context.Context, c pb.WalletServiceClient) 
 	}
 
 	return promptPublishTx(ctx, c, buf.Bytes(), "redeem")
+}
+
+func (cmd *refundCmd) runCommand(ctx context.Context, c pb.WalletServiceClient) error {
+	pushes, err := txscript.ExtractAtomicSwapDataPushes(
+		txscript.DefaultScriptVersion, cmd.contract)
+	if err != nil {
+		return err
+	}
+	if pushes == nil {
+		return errors.New("contract is not an atomic swap script recognized by this tool")
+	}
+
+	passphrase, err := promptPassphase()
+	if err != nil {
+		return err
+	}
+
+	refundTx, refundFee, err := buildRefund(ctx, c, cmd.contract, cmd.contractTx, feePerKb, passphrase)
+	if err != nil {
+		return err
+	}
+	refundTxHash := refundTx.TxHash()
+	var buf bytes.Buffer
+	buf.Grow(refundTx.SerializeSize())
+	refundTx.Serialize(&buf)
+
+	refundFeePerKb := calcFeePerKb(refundFee, refundTx.SerializeSize())
+
+	fmt.Printf("\n")
+	fmt.Printf("Refund fee: %v (%0.8f DCR/kB)\n\n", refundFee, refundFeePerKb)
+	fmt.Printf("Refund transaction (%v):\n", &refundTxHash)
+	fmt.Printf("%x\n\n", buf.Bytes())
+
+	return promptPublishTx(ctx, c, buf.Bytes(), "refund")
 }
 
 func (cmd *extractSecretCmd) runCommand(ctx context.Context, c pb.WalletServiceClient) error {

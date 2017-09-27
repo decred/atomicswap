@@ -103,13 +103,14 @@ wallet.  For example, `btcatomicswap` includes flags for the RPC username and
 password while `dcratomicswap` does not.  Running a tool without any parameters
 will show the full usage help.
 
-All of the tools support the same five commands.  These commands are:
+All of the tools support the same six commands.  These commands are:
 
 ```
 Commands:
   initiate <participant address> <amount>
   participate <initiator address> <amount> <secret hash>
   redeem <contract> <contract transaction> <secret>
+  refund <contract> <contract transaction>
   extractsecret <redemption transaction> <secret hash>
   auditcontract <contract> <contract transaction>
 ```
@@ -158,6 +159,17 @@ transaction. If everything looks correct, the transaction should be published.
 
 For dcratomicswap, this step prompts for the wallet passphrase.  For the
 btcatomicswap and ltcatomicswap tools the wallet must already be unlocked.
+
+**`refund <contract> <contract transaction>`**
+
+The `refund` command is used to create and send a refund of a contract
+transaction.  While the refund transaction is created and displayed during
+contract creation in the initiate and participate steps, the refund can also be
+created after the fact in case there was any issue sending the transaction (e.g.
+the contract transaction was malleated or the refund fee is now too low).
+
+Running this command will prompt for whether to publish the redemption
+transaction. If everything looks correct, the transaction should be published.
 
 **`extractsecret <redemption transaction> <secret hash>`**
 

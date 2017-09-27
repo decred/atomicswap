@@ -77,6 +77,7 @@ func init() {
 		fmt.Println("  initiate <participant address> <amount>")
 		fmt.Println("  participate <initiator address> <amount> <secret hash>")
 		fmt.Println("  redeem <contract> <contract transaction> <secret>")
+		fmt.Println("  refund <contract> <contract transaction>")
 		fmt.Println("  extractsecret <redemption transaction> <secret hash>")
 		fmt.Println("  auditcontract <contract> <contract transaction>")
 		fmt.Println()
@@ -110,6 +111,11 @@ type redeemCmd struct {
 	contract   []byte
 	contractTx *wire.MsgTx
 	secret     []byte
+}
+
+type refundCmd struct {
+	contract   []byte
+	contractTx *wire.MsgTx
 }
 
 type extractSecretCmd struct {
@@ -161,6 +167,8 @@ func run() (err error, showUsage bool) {
 		cmdArgs = 3
 	case "redeem":
 		cmdArgs = 3
+	case "refund":
+		cmdArgs = 2
 	case "extractsecret":
 		cmdArgs = 2
 	case "auditcontract":
@@ -263,6 +271,24 @@ func run() (err error, showUsage bool) {
 		}
 
 		cmd = &redeemCmd{contract: contract, contractTx: &contractTx, secret: secret}
+
+	case "refund":
+		contract, err := hex.DecodeString(args[1])
+		if err != nil {
+			return fmt.Errorf("failed to decode contract: %v", err), true
+		}
+
+		contractTxBytes, err := hex.DecodeString(args[2])
+		if err != nil {
+			return fmt.Errorf("failed to decode contract transaction: %v", err), true
+		}
+		var contractTx wire.MsgTx
+		err = contractTx.Deserialize(bytes.NewReader(contractTxBytes))
+		if err != nil {
+			return fmt.Errorf("failed to decode contract transaction: %v", err), true
+		}
+
+		cmd = &refundCmd{contract: contract, contractTx: &contractTx}
 
 	case "extractsecret":
 		redemptionTxBytes, err := hex.DecodeString(args[1])
@@ -589,58 +615,10 @@ func buildContract(c *rpc.Client, args *contractArgs) (*builtContract, error) {
 	}
 
 	contractTxHash := contractTx.TxHash()
-	contractOutPoint := wire.OutPoint{Hash: contractTxHash}
-	for i, o := range contractTx.TxOut {
-		if bytes.Equal(o.PkScript, contractP2SHPkScript) {
-			contractOutPoint.Index = uint32(i)
-			break
-		}
-	}
 
-	refundAddress, err := getRawChangeAddress(c)
-	if err != nil {
-		return nil, fmt.Errorf("getrawchangeaddress: %v", err)
-	}
-	refundOutScript, err := txscript.PayToAddrScript(refundAddress)
+	refundTx, refundFee, err := buildRefund(c, contract, contractTx, feePerKb, minFeePerKb)
 	if err != nil {
 		return nil, err
-	}
-
-	refundTx := wire.NewMsgTx(txVersion)
-	refundTx.LockTime = uint32(args.locktime)
-	refundTx.AddTxOut(wire.NewTxOut(0, refundOutScript)) // amount set below
-	refundSize := estimateRefundSerializeSize(contract, refundTx.TxOut)
-	refundFee := txrules.FeeForSerializeSize(feePerKb, refundSize)
-	refundTx.TxOut[0].Value = int64(args.amount - refundFee)
-	if txrules.IsDustOutput(refundTx.TxOut[0], minFeePerKb) {
-		return nil, fmt.Errorf("refund output value of %v is dust", btcutil.Amount(refundTx.TxOut[0].Value))
-	}
-
-	txIn := wire.NewTxIn(&contractOutPoint, nil, nil)
-	txIn.Sequence = 0
-	refundTx.AddTxIn(txIn)
-
-	refundSig, refundPubKey, err := createSig(refundTx, 0, contract, refundAddr, c)
-	if err != nil {
-		return nil, err
-	}
-	refundSigScript, err := refundP2SHContract(contract, refundSig, refundPubKey)
-	if err != nil {
-		return nil, err
-	}
-	refundTx.TxIn[0].SignatureScript = refundSigScript
-
-	if verify {
-		e, err := txscript.NewEngine(contractTx.TxOut[contractOutPoint.Index].PkScript,
-			refundTx, 0, txscript.StandardVerifyFlags, txscript.NewSigCache(10),
-			txscript.NewTxSigHashes(refundTx), int64(args.amount))
-		if err != nil {
-			panic(err)
-		}
-		err = e.Execute()
-		if err != nil {
-			panic(err)
-		}
 	}
 
 	return &builtContract{
@@ -652,6 +630,90 @@ func buildContract(c *rpc.Client, args *contractArgs) (*builtContract, error) {
 		refundTx,
 		refundFee,
 	}, nil
+}
+
+func buildRefund(c *rpc.Client, contract []byte, contractTx *wire.MsgTx, feePerKb, minFeePerKb btcutil.Amount) (
+	refundTx *wire.MsgTx, refundFee btcutil.Amount, err error) {
+
+	contractP2SH, err := btcutil.NewAddressScriptHash(contract, chainParams)
+	if err != nil {
+		return nil, 0, err
+	}
+	contractP2SHPkScript, err := txscript.PayToAddrScript(contractP2SH)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	contractTxHash := contractTx.TxHash()
+	contractOutPoint := wire.OutPoint{Hash: contractTxHash, Index: ^uint32(0)}
+	for i, o := range contractTx.TxOut {
+		if bytes.Equal(o.PkScript, contractP2SHPkScript) {
+			contractOutPoint.Index = uint32(i)
+			break
+		}
+	}
+	if contractOutPoint.Index == ^uint32(0) {
+		return nil, 0, errors.New("contract tx does not contain a P2SH contract payment")
+	}
+
+	refundAddress, err := getRawChangeAddress(c)
+	if err != nil {
+		return nil, 0, fmt.Errorf("getrawchangeaddress: %v", err)
+	}
+	refundOutScript, err := txscript.PayToAddrScript(refundAddress)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	pushes, err := txscript.ExtractAtomicSwapDataPushes(contract)
+	if err != nil {
+		// expected to only be called with good input
+		panic(err)
+	}
+
+	refundAddr, err := btcutil.NewAddressPubKeyHash(pushes.RefundHash160[:], chainParams)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	refundTx = wire.NewMsgTx(txVersion)
+	refundTx.LockTime = uint32(pushes.LockTime)
+	refundTx.AddTxOut(wire.NewTxOut(0, refundOutScript)) // amount set below
+	refundSize := estimateRefundSerializeSize(contract, refundTx.TxOut)
+	refundFee = txrules.FeeForSerializeSize(feePerKb, refundSize)
+	refundTx.TxOut[0].Value = contractTx.TxOut[contractOutPoint.Index].Value - int64(refundFee)
+	if txrules.IsDustOutput(refundTx.TxOut[0], minFeePerKb) {
+		return nil, 0, fmt.Errorf("refund output value of %v is dust", btcutil.Amount(refundTx.TxOut[0].Value))
+	}
+
+	txIn := wire.NewTxIn(&contractOutPoint, nil, nil)
+	txIn.Sequence = 0
+	refundTx.AddTxIn(txIn)
+
+	refundSig, refundPubKey, err := createSig(refundTx, 0, contract, refundAddr, c)
+	if err != nil {
+		return nil, 0, err
+	}
+	refundSigScript, err := refundP2SHContract(contract, refundSig, refundPubKey)
+	if err != nil {
+		return nil, 0, err
+	}
+	refundTx.TxIn[0].SignatureScript = refundSigScript
+
+	if verify {
+		e, err := txscript.NewEngine(contractTx.TxOut[contractOutPoint.Index].PkScript,
+			refundTx, 0, txscript.StandardVerifyFlags, txscript.NewSigCache(10),
+			txscript.NewTxSigHashes(refundTx), contractTx.TxOut[contractOutPoint.Index].Value)
+		if err != nil {
+			panic(err)
+		}
+		err = e.Execute()
+		if err != nil {
+			panic(err)
+		}
+	}
+
+	return refundTx, refundFee, nil
 }
 
 func ripemd160Hash(x []byte) []byte {
@@ -839,6 +901,38 @@ func (cmd *redeemCmd) runCommand(c *rpc.Client) error {
 	}
 
 	return promptPublishTx(c, redeemTx, "redeem")
+}
+
+func (cmd *refundCmd) runCommand(c *rpc.Client) error {
+	pushes, err := txscript.ExtractAtomicSwapDataPushes(cmd.contract)
+	if err != nil {
+		return err
+	}
+	if pushes == nil {
+		return errors.New("contract is not an atomic swap script recognized by this tool")
+	}
+
+	feePerKb, minFeePerKb, err := getFeePerKb(c)
+	if err != nil {
+		return err
+	}
+
+	refundTx, refundFee, err := buildRefund(c, cmd.contract, cmd.contractTx, feePerKb, minFeePerKb)
+	if err != nil {
+		return err
+	}
+	refundTxHash := refundTx.TxHash()
+	var buf bytes.Buffer
+	buf.Grow(refundTx.SerializeSize())
+	refundTx.Serialize(&buf)
+
+	refundFeePerKb := calcFeePerKb(refundFee, refundTx.SerializeSize())
+
+	fmt.Printf("Refund fee: %v (%0.8f BTC/kB)\n\n", refundFee, refundFeePerKb)
+	fmt.Printf("Refund transaction (%v):\n", &refundTxHash)
+	fmt.Printf("%x\n\n", buf.Bytes())
+
+	return promptPublishTx(c, refundTx, "refund")
 }
 
 func (cmd *extractSecretCmd) runCommand(c *rpc.Client) error {
