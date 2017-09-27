@@ -33,6 +33,8 @@ const verify = true
 
 const secretSize = 32
 
+const txVersion = 2
+
 var (
 	chainParams = &chaincfg.MainNetParams
 )
@@ -572,7 +574,7 @@ func buildContract(c *rpc.Client, args *contractArgs) (*builtContract, error) {
 		return nil, err
 	}
 
-	unsignedContract := wire.NewMsgTx(2)
+	unsignedContract := wire.NewMsgTx(txVersion)
 	unsignedContract.AddTxOut(wire.NewTxOut(int64(args.amount), contractP2SHPkScript))
 	unsignedContract, contractFee, err := fundRawTransaction(c, unsignedContract, feePerKb)
 	if err != nil {
@@ -604,7 +606,7 @@ func buildContract(c *rpc.Client, args *contractArgs) (*builtContract, error) {
 		return nil, err
 	}
 
-	var refundTx wire.MsgTx
+	refundTx := wire.NewMsgTx(txVersion)
 	refundTx.LockTime = uint32(args.locktime)
 	refundTx.AddTxOut(wire.NewTxOut(0, refundOutScript)) // amount set below
 	refundSize := estimateRefundSerializeSize(contract, refundTx.TxOut)
@@ -618,7 +620,7 @@ func buildContract(c *rpc.Client, args *contractArgs) (*builtContract, error) {
 	txIn.Sequence = 0
 	refundTx.AddTxIn(txIn)
 
-	refundSig, refundPubKey, err := createSig(&refundTx, 0, contract, refundAddr, c)
+	refundSig, refundPubKey, err := createSig(refundTx, 0, contract, refundAddr, c)
 	if err != nil {
 		return nil, err
 	}
@@ -630,8 +632,8 @@ func buildContract(c *rpc.Client, args *contractArgs) (*builtContract, error) {
 
 	if verify {
 		e, err := txscript.NewEngine(contractTx.TxOut[contractOutPoint.Index].PkScript,
-			&refundTx, 0, txscript.StandardVerifyFlags, txscript.NewSigCache(10),
-			txscript.NewTxSigHashes(&refundTx), int64(args.amount))
+			refundTx, 0, txscript.StandardVerifyFlags, txscript.NewSigCache(10),
+			txscript.NewTxSigHashes(refundTx), int64(args.amount))
 		if err != nil {
 			panic(err)
 		}
@@ -647,7 +649,7 @@ func buildContract(c *rpc.Client, args *contractArgs) (*builtContract, error) {
 		&contractTxHash,
 		contractTx,
 		contractFee,
-		&refundTx,
+		refundTx,
 		refundFee,
 	}, nil
 }
@@ -792,10 +794,10 @@ func (cmd *redeemCmd) runCommand(c *rpc.Client) error {
 		return err
 	}
 
-	redeemTx := wire.NewMsgTx(2)
+	redeemTx := wire.NewMsgTx(txVersion)
 	redeemTx.LockTime = uint32(pushes.LockTime)
 	redeemTx.AddTxIn(wire.NewTxIn(&contractOutPoint, nil, nil))
-	redeemTx.AddTxOut(wire.NewTxOut(cmd.contractTx.TxOut[contractOut].Value-1e6, outScript)) // amount set below
+	redeemTx.AddTxOut(wire.NewTxOut(0, outScript)) // amount set below
 	redeemSize := estimateRedeemSerializeSize(cmd.contract, redeemTx.TxOut)
 	fee := txrules.FeeForSerializeSize(feePerKb, redeemSize)
 	redeemTx.TxOut[0].Value = cmd.contractTx.TxOut[contractOut].Value - int64(fee)
