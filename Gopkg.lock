@@ -80,6 +80,24 @@
   revision = "1e59b77b52bf8e4b449a57e6f79f21226d571845"
 
 [[projects]]
+  branch = "master"
+  name = "github.com/viacoin/viad"
+  packages = ["btcec","btcjson","chaincfg","chaincfg/chainhash","rpcclient","txscript","wire"]
+  revision = "a37add7df239fe89ad45630c4249977ddf0764a9"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/viacoin/viautil"
+  packages = [".","base58","bech32"]
+  revision = "ed9ec48290bc085ae179946a14675bf2249fc718"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/viacoin/viawallet"
+  packages = ["wallet/txrules"]
+  revision = "a775b77c2dc41cc00d3156bc7b57e2ac9776a232"
+  
+[[projects]]
   branch = "ltcatomicswap"
   name = "github.com/ltcsuite/ltcd"
   packages = ["btcec","btcjson","chaincfg","chaincfg/chainhash","rpcclient","txscript","wire"]

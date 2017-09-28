@@ -42,6 +42,18 @@
   name = "github.com/decred/dcrwallet"
 
 [[constraint]]
+  branch = "master"
+  name = "github.com/viacoin/viad"
+
+[[constraint]]
+  branch = "master"
+  name = "github.com/viacoin/viautil"
+
+[[constraint]]
+  branch = "master"
+  name = "github.com/viacoin/viawallet"
+
+[[constraint]]
   branch = "ltcatomicswap"
   name = "github.com/ltcsuite/ltcd"
   source = "github.com/jrick/btcd"
