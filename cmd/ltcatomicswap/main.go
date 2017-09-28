@@ -792,7 +792,7 @@ func (cmd *participateCmd) runCommand(c *rpc.Client) error {
 	refundFeePerKb := calcFeePerKb(b.refundFee, b.refundTx.SerializeSize())
 
 	fmt.Printf("Contract fee: %v (%0.8f LTC/kB)\n", b.contractFee, contractFeePerKb)
-	fmt.Printf("Refund fee:   %v (%0.8f LTC/kB\n\n", b.refundFee, refundFeePerKb)
+	fmt.Printf("Refund fee:   %v (%0.8f LTC/kB)\n\n", b.refundFee, refundFeePerKb)
 	fmt.Printf("Contract (%v):\n", b.contractP2SH)
 	fmt.Printf("%x\n\n", b.contract)
 	var contractBuf bytes.Buffer
