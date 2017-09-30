@@ -102,6 +102,24 @@
 
 [[projects]]
   branch = "master"
+  name = "github.com/vertcoin/vtcd"
+  packages = ["btcec","btcjson","chaincfg","chaincfg/chainhash","rpcclient","txscript","wire"]
+  revision = "15387ac36fe71840d251e71f4c81110c793e3b9e"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/vertcoin/vtcutil"
+  packages = [".","base58","bech32"]
+  revision = "264de6df16ae9bcc556487a3ecd06a132224e6ba"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/vertcoin/vtcwallet"
+  packages = ["wallet/txrules"]
+  revision = "b52e3e2c5f5292992b702d991d0b187223873353"
+
+[[projects]]
+  branch = "master"
   name = "golang.org/x/crypto"
   packages = ["pbkdf2","ripemd160","scrypt","ssh/terminal"]
   revision = "7d9177d70076375b9a59c8fde23d52d9c4a7ecd5"
@@ -139,6 +157,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "bed7de4b3c807980a327e32ccb1393629c591d73c8297124dcbca3b820fe65a8"
+  inputs-digest = "802ce4224edbb8eeeb8d26b8cbd2e04b10044a2bf51c7c47f7286d6020f9d5b6"
   solver-name = "gps-cdcl"
   solver-version = 1
