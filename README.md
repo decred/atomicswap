@@ -2,8 +2,9 @@
 
 This repo contains utilities to manually perform cross-chain atomic swaps
 between Decred and other cryptocurrencies.  At the moment, Bitcoin (Bitcoin
-Core), Litecoin (Litecoin Core) and Vertcoin (Vertcoin Core) are the three other blockchains and wallets supported.  Support for other blockchains or wallets 
-could be added in the future.
+Core), Litecoin (Litecoin Core) and Vertcoin (Vertcoin Core) are the three 
+other blockchains and wallets supported.  Support for other blockchains or 
+wallets could be added in the future.
 
 These tools do not operate solely on-chain.  A side-channel is required between
 each party performing the swap in order to exchange additional data.  This
@@ -14,9 +15,9 @@ and a way for early adopters to try out the technology.
 
 Due to the requirements of manually exchanging data and creating, sending, and
 watching for the relevant transactions, it is highly recommended to read this
-README in its entirety before attempting to use these tools.  The sections below
-explain the principles on which the tools operate, the instructions for how to
-use them safely, and an example swap between Decred and Bitcoin.
+README in its entirety before attempting to use these tools.  The sections 
+below explain the principles on which the tools operate, the instructions for 
+how to use them safely, and an example swap between Decred and Bitcoin.
 
 ## Build instructions
 

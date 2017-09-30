@@ -1,5 +1,6 @@
 // Copyright (c) 2017 The Decred developers.
-//				2017 The Vertcoin developers.
+// Copyright (c) 2017 The Vertcoin developers.
+//
 // Use of this source code is governed by an ISC
 // license that can be found in the LICENSE file.
 
