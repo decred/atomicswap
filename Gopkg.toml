@@ -67,3 +67,16 @@
 [[constraint]]
   name = "google.golang.org/grpc"
   version = "1.6.0"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/vertcoin/vtcd"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/vertcoin/vtcutil"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/vertcoin/vtcwallet"
+
