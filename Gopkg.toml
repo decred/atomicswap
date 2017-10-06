@@ -68,15 +68,15 @@
   name = "google.golang.org/grpc"
   version = "1.6.0"
 
-[[projects]]
+[[constraint]]
   branch = "master"
   name = "github.com/vertcoin/vtcd"
 
-[[projects]]
+[[constraint]]
   branch = "master"
   name = "github.com/vertcoin/vtcutil"
 
-[[projects]]
+[[constraint]]
   branch = "master"
   name = "github.com/vertcoin/vtcwallet"
 
