@@ -57,21 +57,21 @@
 
 [[projects]]
   branch = "master"
-  name = "github.com/decred/dcrd"
-  packages = ["blockchain","blockchain/internal/dbnamespace","blockchain/internal/progresslog","blockchain/stake","blockchain/stake/internal/dbnamespace","blockchain/stake/internal/ticketdb","blockchain/stake/internal/tickettreap","chaincfg","chaincfg/chainec","chaincfg/chainhash","database","dcrec/edwards","dcrec/secp256k1","dcrec/secp256k1/schnorr","txscript","wire"]
-  revision = "ecf5f0a00e3ae1463f46b1c52d2a6a93fed8eb62"
+  name = "github.com/decred/base58"
+  packages = ["."]
+  revision = "b3520e187fa8ebe65eb74245408cf4b83e6a65d3"
 
 [[projects]]
   branch = "master"
-  name = "github.com/decred/dcrutil"
-  packages = [".","base58"]
-  revision = "ddbde93f65ab0692e54ed8a5ad325fa2e8af4daa"
+  name = "github.com/decred/dcrd"
+  packages = ["blockchain","blockchain/internal/dbnamespace","blockchain/internal/progresslog","blockchain/stake","blockchain/stake/internal/dbnamespace","blockchain/stake/internal/ticketdb","blockchain/stake/internal/tickettreap","chaincfg","chaincfg/chainec","chaincfg/chainhash","database","dcrec/edwards","dcrec/secp256k1","dcrec/secp256k1/schnorr","dcrutil","txscript","wire"]
+  revision = "d27429061b49d400d06505911a1379b8a8246671"
 
 [[projects]]
   branch = "master"
   name = "github.com/decred/dcrwallet"
-  packages = ["rpc/walletrpc","wallet/txrules"]
-  revision = "e3aa7eafac265c77c59cf7874307a1ea28b80ee0"
+  packages = ["internal/helpers","rpc/walletrpc","wallet/txrules"]
+  revision = "2df4002bce8c540907c9a3e2980fc3e5deeba8f6"
 
 [[projects]]
   branch = "master"
@@ -157,6 +157,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "554fa89fff7925286e92d00b9492639c241b2df0f6622eb83ce46cc89216c45c"
+  inputs-digest = "bb788a88573ea1c43e7f870bbdec56dde139c8f862084d1612da0914a5fc0d43"
   solver-name = "gps-cdcl"
   solver-version = 1

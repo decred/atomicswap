@@ -39,10 +39,6 @@
 
 [[constraint]]
   branch = "master"
-  name = "github.com/decred/dcrutil"
-
-[[constraint]]
-  branch = "master"
   name = "github.com/decred/dcrwallet"
 
 [[constraint]]
