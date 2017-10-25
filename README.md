@@ -2,7 +2,7 @@
 
 This repo contains utilities to manually perform cross-chain atomic swaps
 between Decred and other cryptocurrencies.  At the moment, Bitcoin (Bitcoin
-Core), Litecoin (Litecoin Core) and Vertcoin (Vertcoin Core) are the three 
+Core), Litecoin (Litecoin Core), Vertcoin (Vertcoin Core) and Particl (Particl Core) are the four
 other blockchains and wallets supported.  Support for other blockchains or 
 wallets could be added in the future.
 
@@ -382,7 +382,7 @@ Several steps require working with a raw transaction published by the other
 party.  While the transactions can sometimes be looked up from a local node
 using the `getrawtransaction` JSON-RPC, this method can be unreliable since the
 set of queryable transactions depends on the current UTXO set (bitcoind,
-litecoind, vertcoind) or may require the transaction index to be enabled (dcrd).
+litecoind, vertcoind, particld) or may require the transaction index to be enabled (dcrd).
 
 Another method of discovering these transactions is to use a public blockchain
 explorer.  Not all explorers expose this info through the main user interface so
