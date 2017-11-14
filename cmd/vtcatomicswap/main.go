@@ -455,8 +455,8 @@ func fundRawTransaction(c *rpc.Client, tx *wire.MsgTx, feePerKb vtcutil.Amount) 
 
 // getFeePerKb queries the wallet for the transaction relay fee/kB to use and
 // the minimum mempool relay fee.  It first tries to get the user-set fee in the
-// wallet.  If unset, it attempts to find an estimate using estimatefee 6.  If
-// both of these fail, it falls back to mempool relay fee policy.
+// wallet.  If unset, it attempts to find an estimate using estimatesmartfee 6
+// and estimatefee 6.  If all of these fail, it falls back to mempool relay fee policy.
 func getFeePerKb(c *rpc.Client) (useFee, relayFee vtcutil.Amount, err error) {
 	info, err := c.GetInfo()
 	if err != nil {
