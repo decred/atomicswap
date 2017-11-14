@@ -475,19 +475,33 @@ func getFeePerKb(c *rpc.Client) (useFee, relayFee vtcutil.Amount, err error) {
 		return useFee, relayFee, err
 	}
 
-	params := []json.RawMessage{[]byte("6")}
-	estimateRawResp, err := c.RawRequest("estimatefee", params)
-	if err != nil {
-		return 0, 0, err
-	}
-	var estimateResp float64 = -1
-	err = json.Unmarshal(estimateRawResp, &estimateResp)
-	if err == nil && estimateResp != -1 {
-		useFee, err = vtcutil.NewAmount(estimateResp)
-		if relayFee > useFee {
-			useFee = relayFee
+	estimateSmartRawResp, err := c.RawRequest("estimatesmartfee", []json.RawMessage{[]byte("6")})
+	if err == nil {
+		var respFee struct {
+			SmartFee float64 `json:"feerate"`
+			Blocks   int8    `json:"blocks"`
 		}
-		return useFee, relayFee, err
+		err = json.Unmarshal(estimateSmartRawResp, &respFee)
+		if err == nil && respFee.SmartFee != -1 {
+			useFee, err = vtcutil.NewAmount(respFee.SmartFee)
+			if relayFee > useFee {
+				useFee = relayFee
+			}
+			return useFee, relayFee, err
+		}
+	}
+
+	estimateRawResp, err := c.RawRequest("estimatefee", []json.RawMessage{[]byte("6")})
+	if err == nil {
+		var estimateResp float64 = -1
+		err = json.Unmarshal(estimateRawResp, &estimateResp)
+		if err == nil && estimateResp != -1 {
+			useFee, err = vtcutil.NewAmount(estimateResp)
+			if relayFee > useFee {
+				useFee = relayFee
+			}
+			return useFee, relayFee, err
+		}
 	}
 
 	fmt.Println("warning: falling back to mempool relay fee policy")
