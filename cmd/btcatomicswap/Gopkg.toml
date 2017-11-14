@@ -35,8 +35,4 @@
 
 [[constraint]]
   branch = "master"
-  name = "github.com/btcsuite/btcwallet"
-
-[[constraint]]
-  branch = "master"
   name = "golang.org/x/crypto"
