@@ -87,11 +87,3 @@
 [[constraint]]
   branch = "master"
   name = "github.com/particl/partsuite_partwallet"
-
-[[constraint]]
-  branch = "master"
-  name = "github.com/cpacia/bchutil"
-
-[[constraint]]
-  branch = "master"
-  name = "github.com/DesWurstes/btcd"
