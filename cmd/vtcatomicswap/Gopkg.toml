@@ -23,19 +23,15 @@
 
 [[constraint]]
   branch = "master"
-  name = "github.com/btcsuite/btcd"
+  name = "github.com/vertcoin/vtcd"
 
 [[constraint]]
   branch = "master"
-  name = "github.com/btcsuite/btcutil"
+  name = "github.com/vertcoin/vtcutil"
 
 [[constraint]]
   branch = "master"
-  name = "github.com/btcsuite/btcwallet"
-
-[[constraint]]
-  branch = "master"
-  name = "github.com/btcsuite/btcwallet"
+  name = "github.com/vertcoin/vtcwallet"
 
 [[constraint]]
   branch = "master"

@@ -22,20 +22,19 @@
 
 
 [[constraint]]
-  branch = "master"
-  name = "github.com/btcsuite/btcd"
+  branch = "ltcatomicswap"
+  name = "github.com/ltcsuite/ltcd"
+  source = "github.com/jrick/btcd"
 
 [[constraint]]
-  branch = "master"
-  name = "github.com/btcsuite/btcutil"
+  branch = "ltcamounts"
+  name = "github.com/ltcsuite/ltcutil"
+  source = "github.com/jrick/btcutil"
 
 [[constraint]]
-  branch = "master"
-  name = "github.com/btcsuite/btcwallet"
-
-[[constraint]]
-  branch = "master"
-  name = "github.com/btcsuite/btcwallet"
+  branch = "ltcdeps"
+  name = "github.com/ltcsuite/ltcwallet"
+  source = "github.com/jrick/btcwallet"
 
 [[constraint]]
   branch = "master"

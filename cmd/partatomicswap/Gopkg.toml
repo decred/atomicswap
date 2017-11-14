@@ -23,19 +23,15 @@
 
 [[constraint]]
   branch = "master"
-  name = "github.com/btcsuite/btcd"
+  name = "github.com/particl/partsuite_partd"
 
 [[constraint]]
   branch = "master"
-  name = "github.com/btcsuite/btcutil"
+  name = "github.com/particl/partsuite_partutil"
 
 [[constraint]]
   branch = "master"
-  name = "github.com/btcsuite/btcwallet"
-
-[[constraint]]
-  branch = "master"
-  name = "github.com/btcsuite/btcwallet"
+  name = "github.com/particl/partsuite_partwallet"
 
 [[constraint]]
   branch = "master"
