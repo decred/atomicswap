@@ -295,7 +295,7 @@ B now informs A that the Decred contract transaction has been created and
 published, and provides the contract details to A.
 
 Just as B needed to audit A's contract before locking their coins in a contract,
-A must do the same with B's contract before withdrawing from the contract.  B
+A must do the same with B's contract before withdrawing from the contract.  A
 audits the contract and contract transaction to verify:
 
 1. The recipient address was the DCR address that was provided to B
