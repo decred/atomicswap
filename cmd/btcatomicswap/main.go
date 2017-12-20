@@ -471,7 +471,7 @@ func getFeePerKb(c *rpc.Client) (useFee, relayFee btcutil.Amount, err error) {
 		return 0, 0, err
 	}
 
-	var relayFeeFloat =  raw["relayfee"].(float64)
+	var relayFeeFloat = raw["relayfee"].(float64)
 	relayFee, err = btcutil.NewAmount(relayFeeFloat)
 
 	if err != nil {
