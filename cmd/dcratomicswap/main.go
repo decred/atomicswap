@@ -9,6 +9,7 @@ import (
 	"bytes"
 	"context"
 	"crypto/rand"
+	"crypto/sha256"
 	"encoding/hex"
 	"errors"
 	"flag"
@@ -44,7 +45,8 @@ const verifyFlags = txscript.ScriptBip16 |
 	txscript.ScriptVerifyCleanStack |
 	txscript.ScriptVerifyCheckLockTimeVerify |
 	txscript.ScriptVerifyCheckSequenceVerify |
-	txscript.ScriptVerifyLowS
+	txscript.ScriptVerifyLowS |
+	txscript.ScriptVerifySHA256
 
 const secretSize = 32
 
@@ -65,7 +67,7 @@ var (
 // initiator can be on either chain.  This tool only deals with creating the
 // Decred transactions for these swaps.  A second tool should be used for the
 // transaction on the other chain.  Any chain can be used so long as it supports
-// OP_RIPEMD160 and OP_CHECKLOCKTIMEVERIFY.
+// OP_SHA256 and OP_CHECKLOCKTIMEVERIFY.
 //
 // Example scenerios using bitcoin as the second chain:
 //
@@ -257,7 +259,7 @@ func run() (err error, showUsage bool) {
 		if err != nil {
 			return errors.New("secret hash must be hex encoded"), true
 		}
-		if len(secretHash) != ripemd160.Size {
+		if len(secretHash) != sha256.Size {
 			return errors.New("secret hash has wrong size"), true
 		}
 
@@ -319,7 +321,7 @@ func run() (err error, showUsage bool) {
 		if err != nil {
 			return errors.New("secret hash must be hex encoded"), true
 		}
-		if len(secretHash) != ripemd160.Size {
+		if len(secretHash) != sha256.Size {
 			return errors.New("secret hash has wrong size"), true
 		}
 
@@ -636,10 +638,9 @@ func buildRefund(ctx context.Context, c pb.WalletServiceClient, contract []byte,
 	return refundTx, refundFee, nil
 }
 
-func ripemd160Hash(x []byte) []byte {
-	h := ripemd160.New()
-	h.Write(x)
-	return h.Sum(nil)
+func sha256Hash(x []byte) []byte {
+	h := sha256.Sum256(x)
+	return h[:]
 }
 
 func calcFeePerKb(absoluteFee dcrutil.Amount, serializeSize int) float64 {
@@ -652,7 +653,7 @@ func (cmd *initiateCmd) runCommand(ctx context.Context, c pb.WalletServiceClient
 	if err != nil {
 		return err
 	}
-	secretHash := ripemd160Hash(secret[:])
+	secretHash := sha256Hash(secret[:])
 
 	// locktime after 500,000,000 (Tue Nov  5 00:53:20 1985 UTC) is interpreted
 	// as a unix time rather than a block height.
@@ -907,7 +908,7 @@ func (cmd *extractSecretCmd) runOfflineCommand() error {
 			return err
 		}
 		for _, push := range pushes {
-			if bytes.Equal(ripemd160Hash(push), cmd.secretHash) {
+			if bytes.Equal(sha256Hash(push), cmd.secretHash) {
 				fmt.Printf("Secret: %x\n", push)
 				return nil
 			}
@@ -999,10 +1000,8 @@ func atomicSwapContract(pkhMe, pkhThem *[ripemd160.Size]byte, locktime int64, se
 
 	b.AddOp(txscript.OP_IF) // Normal redeem path
 	{
-		// Require initiator's secret to be known to redeem the output.  A
-		// ripemd160 hash is used here as it is the only shared hash opcode
-		// between decred and bitcoin.
-		b.AddOp(txscript.OP_RIPEMD160)
+		// Require initiator's secret to be known to redeem the output.
+		b.AddOp(txscript.OP_SHA256)
 		b.AddData(secretHash)
 		b.AddOp(txscript.OP_EQUALVERIFY)
 
