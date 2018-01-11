@@ -6,8 +6,8 @@
 # Decred cross-chain atomic swapping
 
 This repo contains utilities to manually perform cross-chain atomic swaps
-between Decred and other cryptocurrencies.  At the moment, Bitcoin (Bitcoin
-Core), Litecoin (Litecoin Core), Vertcoin (Vertcoin Core) and Particl (Particl Core) are the four
+between Decred and other cryptocurrencies.  At the moment, Bitcoin ([Bitcoin
+Core](https://github.com/bitcoin/bitcoin)), Litecoin ([Litecoin Core](https://github.com/litecoin-project/litecoin)), Vertcoin ([Vertcoin Core](https://github.com/vertcoin/vertcoin)) and Particl ([Particl Core](https://github.com/particl/particl-core)) are the four
 other blockchains and wallets supported.  Support for other blockchains or 
 wallets could be added in the future.
 
