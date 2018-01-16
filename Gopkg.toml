@@ -99,3 +99,15 @@
 [[constraint]]
   branch = "master"
   name = "github.com/particl/partsuite_partwallet"
+
+[[constraint]]
+  branch = "master"
+  name = "github.com/zcoinofficial/xzcd"
+
+[[constraint]]
+  branch = "master"
+  name = "github.com/zcoinofficial/xzcutil"
+
+[[constraint]]
+  branch = "master"
+  name = "github.com/zcoinofficial/xzcwallet"
