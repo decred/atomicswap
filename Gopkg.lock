@@ -80,24 +80,6 @@
   revision = "1e59b77b52bf8e4b449a57e6f79f21226d571845"
 
 [[projects]]
-  branch = "master"
-  name = "github.com/viacoin/viad"
-  packages = ["btcec","btcjson","chaincfg","chaincfg/chainhash","rpcclient","txscript","wire"]
-  revision = "a37add7df239fe89ad45630c4249977ddf0764a9"
-
-[[projects]]
-  branch = "master"
-  name = "github.com/viacoin/viautil"
-  packages = [".","base58","bech32"]
-  revision = "ed9ec48290bc085ae179946a14675bf2249fc718"
-
-[[projects]]
-  branch = "master"
-  name = "github.com/viacoin/viawallet"
-  packages = ["wallet/txrules"]
-  revision = "a775b77c2dc41cc00d3156bc7b57e2ac9776a232"
-  
-[[projects]]
   branch = "ltcatomicswap"
   name = "github.com/ltcsuite/ltcd"
   packages = ["btcec","btcjson","chaincfg","chaincfg/chainhash","rpcclient","txscript","wire"]
@@ -156,6 +138,24 @@
 
 [[projects]]
   branch = "master"
+  name = "github.com/viacoin/viad"
+  packages = ["btcec","btcjson","chaincfg","chaincfg/chainhash","rpcclient","txscript","wire"]
+  revision = "a37add7df239fe89ad45630c4249977ddf0764a9"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/viacoin/viautil"
+  packages = [".","base58","bech32"]
+  revision = "ed9ec48290bc085ae179946a14675bf2249fc718"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/viacoin/viawallet"
+  packages = ["wallet/txrules"]
+  revision = "a775b77c2dc41cc00d3156bc7b57e2ac9776a232"
+
+[[projects]]
+  branch = "master"
   name = "golang.org/x/crypto"
   packages = ["pbkdf2","ripemd160","scrypt","ssh/terminal"]
   revision = "b3c9a1d25cfbbbab0ff4780b71c4f54e6e92a0de"
@@ -193,6 +193,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "cf9373df2e658d00b7f8ca09ac087f26f56ee593ab786b80d8166efd3720f171"
+  inputs-digest = "49ab5e602b42b604455df42b173c9e74af37bfbe7391937580b920f83c8107ec"
   solver-name = "gps-cdcl"
   solver-version = 1
