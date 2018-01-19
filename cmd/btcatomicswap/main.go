@@ -457,25 +457,52 @@ func fundRawTransaction(c *rpc.Client, tx *wire.MsgTx, feePerKb btcutil.Amount) 
 // wallet.  If unset, it attempts to find an estimate using estimatefee 6.  If
 // both of these fail, it falls back to mempool relay fee policy.
 func getFeePerKb(c *rpc.Client) (useFee, relayFee btcutil.Amount, err error) {
-	info, err := c.GetInfo()
+	var raw map[string]interface{}
+	emptyParams := []json.RawMessage{}
+
+	jsonNetworkInfo, err := c.RawRequest("getnetworkinfo", emptyParams)
+
 	if err != nil {
-		return 0, 0, fmt.Errorf("getinfo: %v", err)
+		return 0, 0, fmt.Errorf("getnetworkinfo: %v", err)
 	}
-	relayFee, err = btcutil.NewAmount(info.RelayFee)
+
+	err = json.Unmarshal(jsonNetworkInfo, &raw)
+
 	if err != nil {
 		return 0, 0, err
 	}
-	maxFee := info.PaytxFee
-	if info.PaytxFee != 0 {
-		if info.RelayFee > maxFee {
-			maxFee = info.RelayFee
+
+	var relayFeeFloat = raw["relayfee"].(float64)
+	relayFee, err = btcutil.NewAmount(relayFeeFloat)
+
+	if err != nil {
+		return 0, 0, err
+	}
+
+	rawWalletInfo, err := c.RawRequest("getwalletinfo", emptyParams)
+
+	if err != nil {
+		return 0, 0, fmt.Errorf("getwalletinfo: %v", err)
+	}
+
+	err = json.Unmarshal(rawWalletInfo, &raw)
+
+	if err != nil {
+		return 0, 0, err
+	}
+
+	maxFee := raw["paytxfee"].(float64)
+
+	if maxFee != 0 {
+		if relayFeeFloat > maxFee {
+			maxFee = relayFeeFloat
 		}
 		useFee, err = btcutil.NewAmount(maxFee)
 		return useFee, relayFee, err
 	}
 
 	params := []json.RawMessage{[]byte("6")}
-	estimateRawResp, err := c.RawRequest("estimatefee", params)
+	estimateRawResp, err := c.RawRequest("estimatesmartfee", params)
 	if err != nil {
 		return 0, 0, err
 	}
@@ -490,7 +517,7 @@ func getFeePerKb(c *rpc.Client) (useFee, relayFee btcutil.Amount, err error) {
 	}
 
 	fmt.Println("warning: falling back to mempool relay fee policy")
-	useFee, err = btcutil.NewAmount(info.RelayFee)
+	useFee, err = btcutil.NewAmount(relayFeeFloat)
 	return useFee, relayFee, err
 }
 
