@@ -12,6 +12,7 @@ the following coins and wallets:
 * Bitcoin ([Bitcoin Core](https://github.com/bitcoin/bitcoin))
 * Bitcoin Cash ([Bitcoin ABC](https://github.com/Bitcoin-ABC/bitcoin-abc), [Bitcoin Unlimited](https://github.com/BitcoinUnlimited/BitcoinUnlimited), [Bitcoin XT](https://github.com/bitcoinxt/bitcoinxt))
 * Litecoin ([Litecoin Core](https://github.com/litecoin-project/litecoin))
+* Monacoin ([Monacoin Core](https://github.com/monacoinproject/monacoin))
 * Particl ([Particl Core](https://github.com/particl/particl-core))
 * Vertcoin ([Vertcoin Core](https://github.com/vertcoin/vertcoin))
 * Viacoin ([Viacoin Core](https://github.com/viacoin/viacoin))
