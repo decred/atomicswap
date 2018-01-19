@@ -99,3 +99,12 @@
 [[constraint]]
   branch = "master"
   name = "github.com/particl/partsuite_partwallet"
+
+[[constraint]]
+  branch = "master"
+  name = "github.com/DesWurstes/btcd"
+
+[[constraint]]
+  # Further commits have not been tested with bchatomicswap yet.
+  revision = "223045ec4d9ef2fcc7c6ed62f9a8ed80ac9bdf58"
+  name = "github.com/cpacia/bchutil"

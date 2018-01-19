@@ -3,6 +3,12 @@
 
 [[projects]]
   branch = "master"
+  name = "github.com/DesWurstes/btcd"
+  packages = ["txscript"]
+  revision = "d3cfbfb6e8b64131f3911a6a00246b499aafee37"
+
+[[projects]]
+  branch = "master"
   name = "github.com/agl/ed25519"
   packages = [".","edwards25519"]
   revision = "5312a61534124124185d41f09206b9fef1d88403"
@@ -48,6 +54,11 @@
   name = "github.com/btcsuite/websocket"
   packages = ["."]
   revision = "31079b6807923eb23992c421b114992b95131b55"
+
+[[projects]]
+  name = "github.com/cpacia/bchutil"
+  packages = ["."]
+  revision = "223045ec4d9ef2fcc7c6ed62f9a8ed80ac9bdf58"
 
 [[projects]]
   branch = "master"
@@ -193,6 +204,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "49ab5e602b42b604455df42b173c9e74af37bfbe7391937580b920f83c8107ec"
+  inputs-digest = "7274080d2ed7b39cbe0c7245b4c69afd6ca73a11a10bcfc9774a1114bbe44f2f"
   solver-name = "gps-cdcl"
   solver-version = 1
