@@ -9,9 +9,21 @@
 
 [[projects]]
   branch = "master"
+  name = "github.com/aead/skein"
+  packages = [".","threefish"]
+  revision = "9365ae6e95d294dc113a0b308852f97c916db233"
+
+[[projects]]
+  branch = "master"
   name = "github.com/agl/ed25519"
   packages = [".","edwards25519"]
   revision = "5312a61534124124185d41f09206b9fef1d88403"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/bitgoin/lyra2rev2"
+  packages = ["sha3"]
+  revision = "bae9ad2043bb55facb14c4918e909f88a7d3ed84"
 
 [[projects]]
   branch = "master"
@@ -76,13 +88,13 @@
   branch = "master"
   name = "github.com/decred/dcrd"
   packages = ["blockchain","blockchain/internal/dbnamespace","blockchain/internal/progresslog","blockchain/stake","blockchain/stake/internal/dbnamespace","blockchain/stake/internal/ticketdb","blockchain/stake/internal/tickettreap","chaincfg","chaincfg/chainec","chaincfg/chainhash","database","dcrec/edwards","dcrec/secp256k1","dcrec/secp256k1/schnorr","dcrutil","txscript","wire"]
-  revision = "36c6c7f46e0f06d158ebf84a0548fc51e36bbfab"
+  revision = "97f043a6b768b4d7d31d07cea06810cacc47c0e3"
 
 [[projects]]
   branch = "master"
   name = "github.com/decred/dcrwallet"
   packages = ["internal/helpers","rpc/walletrpc","wallet/txrules"]
-  revision = "5b0a840f588dde3f52ba002d6b5ef69013cbcd9b"
+  revision = "89876fd1c929427c455e792e5271516e2ae20953"
 
 [[projects]]
   branch = "master"
@@ -167,21 +179,45 @@
 
 [[projects]]
   branch = "master"
+  name = "github.com/wakiyamap/lyra2rev2"
+  packages = ["."]
+  revision = "bae9ad2043bb55facb14c4918e909f88a7d3ed84"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/wakiyamap/monad"
+  packages = ["btcec","btcjson","chaincfg","chaincfg/chainhash","rpcclient","txscript","wire"]
+  revision = "4148a038f299dfa1c6a6969ea8b8f27ead2376f6"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/wakiyamap/monautil"
+  packages = [".","base58","bech32"]
+  revision = "f5bfcf53b9ae24b8146086c9c11790a5f0616d9d"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/wakiyamap/monawallet"
+  packages = ["wallet/txrules"]
+  revision = "33714dc4b5f9f4dfd2a2b33af8820bf53d4a3a73"
+
+[[projects]]
+  branch = "master"
   name = "golang.org/x/crypto"
   packages = ["pbkdf2","ripemd160","scrypt","ssh/terminal"]
-  revision = "b3c9a1d25cfbbbab0ff4780b71c4f54e6e92a0de"
+  revision = "a6600008915114d9c087fad9f03d75087b1a74df"
 
 [[projects]]
   branch = "master"
   name = "golang.org/x/net"
   packages = ["context","http2","http2/hpack","idna","internal/timeseries","lex/httplex","trace"]
-  revision = "434ec0c7fe3742c984919a691b2018a6e9694425"
+  revision = "5ccada7d0a7ba9aeb5d3aca8d3501b4c2a509fec"
 
 [[projects]]
   branch = "master"
   name = "golang.org/x/sys"
   packages = ["unix","windows"]
-  revision = "810d7000345868fc619eb81f46307107118f4ae1"
+  revision = "2c42eef0765b9837fbdab12011af7830f55f88f0"
 
 [[projects]]
   branch = "master"
@@ -204,6 +240,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "7274080d2ed7b39cbe0c7245b4c69afd6ca73a11a10bcfc9774a1114bbe44f2f"
+  inputs-digest = "bee1b638abba9750f95177a2d67731d24a31e836fa372cb6e428f8a42633e60c"
   solver-name = "gps-cdcl"
   solver-version = 1
