@@ -454,8 +454,8 @@ func fundRawTransaction(c *rpc.Client, tx *wire.MsgTx, feePerKb ltcutil.Amount) 
 
 // getFeePerKb queries the wallet for the transaction relay fee/kB to use and
 // the minimum mempool relay fee.  It first tries to get the user-set fee in the
-// wallet.  If unset, it attempts to find an estimate using estimatefee 6.  If
-// both of these fail, it falls back to mempool relay fee policy.
+// wallet.  If unset, it attempts to find an estimate using estimatesmartfee 6
+// and estimatefee 6.  If all of these fail, it falls back to mempool relay fee policy.
 func getFeePerKb(c *rpc.Client) (useFee, relayFee ltcutil.Amount, err error) {
 	info, err := c.GetInfo()
 	if err != nil {
@@ -474,19 +474,33 @@ func getFeePerKb(c *rpc.Client) (useFee, relayFee ltcutil.Amount, err error) {
 		return useFee, relayFee, err
 	}
 
-	params := []json.RawMessage{[]byte("6")}
-	estimateRawResp, err := c.RawRequest("estimatefee", params)
-	if err != nil {
-		return 0, 0, err
-	}
-	var estimateResp float64 = -1
-	err = json.Unmarshal(estimateRawResp, &estimateResp)
-	if err == nil && estimateResp != -1 {
-		useFee, err = ltcutil.NewAmount(estimateResp)
-		if relayFee > useFee {
-			useFee = relayFee
+	estimateSmartRawResp, err := c.RawRequest("estimatesmartfee", []json.RawMessage{[]byte("6")})
+	if err == nil {
+		var respFee struct {
+			SmartFee float64 `json:"feerate"`
+			Blocks   int8    `json:"blocks"`
 		}
-		return useFee, relayFee, err
+		err = json.Unmarshal(estimateSmartRawResp, &respFee)
+		if err == nil && respFee.SmartFee != -1 {
+			useFee, err = ltcutil.NewAmount(respFee.SmartFee)
+			if relayFee > useFee {
+				useFee = relayFee
+			}
+			return useFee, relayFee, err
+		}
+	}
+
+	estimateRawResp, err := c.RawRequest("estimatefee", []json.RawMessage{[]byte("6")})
+	if err == nil {
+		var estimateResp float64 = -1
+		err = json.Unmarshal(estimateRawResp, &estimateResp)
+		if err == nil && estimateResp != -1 {
+			useFee, err = ltcutil.NewAmount(estimateResp)
+			if relayFee > useFee {
+				useFee = relayFee
+			}
+			return useFee, relayFee, err
+		}
 	}
 
 	fmt.Println("warning: falling back to mempool relay fee policy")
