@@ -1,3 +1,9 @@
+atomicswap
+==========
+
+[![Build Status](https://travis-ci.org/decred/atomicswap.png?branch=master)](https://travis-ci.org/decred/atomicswap)
+[![ISC License](http://img.shields.io/badge/license-ISC-blue.svg)](http://copyfree.org)
+
 **NOTICE Jan 10 2018:** The atomic swap contract has been updated to use SHA256
  secret hashes (instead of RIPEMD160) as it is more secure and has wider
  compatibility with altcoins.  Old contracts will not be usable by the new tools
