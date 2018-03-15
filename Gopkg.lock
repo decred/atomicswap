@@ -203,6 +203,24 @@
 
 [[projects]]
   branch = "master"
+  name = "github.com/zcoinofficial/xzcd"
+  packages = ["btcec","btcjson","chaincfg","chaincfg/chainhash","rpcclient","txscript","wire"]
+  revision = "ae307d1ae9070c5434a6a203992db0ad35712e96"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/zcoinofficial/xzcutil"
+  packages = [".","base58","bech32"]
+  revision = "ca7c84e1d45c50576b352b6dd22f0547b0b56c30"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/zcoinofficial/xzcwallet"
+  packages = ["wallet/txrules"]
+  revision = "fe84e6e188b8a4d350109646c084d0fb8c147fae"
+
+[[projects]]
+  branch = "master"
   name = "golang.org/x/crypto"
   packages = ["pbkdf2","ripemd160","scrypt","ssh/terminal"]
   revision = "91a49db82a88618983a78a06c1cbd4e00ab749ab"
@@ -240,6 +258,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "bee1b638abba9750f95177a2d67731d24a31e836fa372cb6e428f8a42633e60c"
+  inputs-digest = "bd710a278fa414ae0895a72001f20209f5890e4bedfd3311c03db28a98da0430"
   solver-name = "gps-cdcl"
   solver-version = 1
