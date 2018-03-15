@@ -16,6 +16,8 @@ the following coins and wallets:
 * Particl ([Particl Core](https://github.com/particl/particl-core))
 * Vertcoin ([Vertcoin Core](https://github.com/vertcoin/vertcoin))
 * Viacoin ([Viacoin Core](https://github.com/viacoin/viacoin))
+* Polis ([Polis Core](https://github.com/polispay/polis))
+
 
 Pull requests implementing support for additional cryptocurrencies and wallets
 are encouraged.  See [GitHub project
@@ -31,8 +33,8 @@ and a way for early adopters to try out the technology.
 
 Due to the requirements of manually exchanging data and creating, sending, and
 watching for the relevant transactions, it is highly recommended to read this
-README in its entirety before attempting to use these tools.  The sections 
-below explain the principles on which the tools operate, the instructions for 
+README in its entirety before attempting to use these tools.  The sections
+below explain the principles on which the tools operate, the instructions for
 how to use them safely, and an example swap between Decred and Bitcoin.
 
 ## Build instructions
@@ -257,7 +259,7 @@ Published contract transaction (346f4901dff1d69197850289b481f4331913126a8886861e
 ```
 
 Once A has initialized the swap, B must audit the contract and contract
-transaction to verify: 
+transaction to verify:
 
 1. The recipient address was the BTC address that was provided to A
 2. The contract value is the expected amount of BTC to receive
