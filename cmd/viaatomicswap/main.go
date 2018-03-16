@@ -667,7 +667,7 @@ func buildRefund(c *rpc.Client, contract []byte, contractTx *wire.MsgTx, feePerK
 		return nil, 0, err
 	}
 
-	pushes, err := txscript.ExtractAtomicSwapDataPushes(contract)
+	pushes, err := txscript.ExtractAtomicSwapDataPushes(0, contract)
 	if err != nil {
 		//expected only to be called with good input
 		panic(err)
@@ -811,7 +811,7 @@ func (cmd *participateCmd) runCommand(c *rpc.Client) error {
 }
 
 func (cmd *redeemCmd) runCommand(c *rpc.Client) error {
-	pushes, err := txscript.ExtractAtomicSwapDataPushes(cmd.contract)
+	pushes, err := txscript.ExtractAtomicSwapDataPushes(0, cmd.contract)
 	if err != nil {
 		return err
 	}
@@ -905,7 +905,7 @@ func (cmd *redeemCmd) runCommand(c *rpc.Client) error {
 }
 
 func (cmd *refundCmd) runCommand(c *rpc.Client) error {
-	pushes, err := txscript.ExtractAtomicSwapDataPushes(cmd.contract)
+	pushes, err := txscript.ExtractAtomicSwapDataPushes(0, cmd.contract)
 	if err != nil {
 		return err
 	}
@@ -982,12 +982,15 @@ func (cmd *auditContractCmd) runOfflineCommand() error {
 		return errors.New("transaction does not contain the contract output")
 	}
 
-	pushes, err := txscript.ExtractAtomicSwapDataPushes(cmd.contract)
+	pushes, err := txscript.ExtractAtomicSwapDataPushes(0, cmd.contract)
 	if err != nil {
 		return err
 	}
 	if pushes == nil {
 		return errors.New("contract is not an atomic swap script recognized by this tool")
+	}
+	if pushes.SecretSize != secretSize {
+		return fmt.Errorf("contract specifies strange secret size %v", pushes.SecretSize)
 	}
 
 	contractAddr, err := viautil.NewAddressScriptHash(cmd.contract, chainParams)
@@ -1044,6 +1047,13 @@ func atomicSwapContract(pkhMe, pkhThem *[ripemd160.Size]byte, locktime int64, se
 
 	b.AddOp(txscript.OP_IF) // Normal redeem path
 	{
+		// Require initiator's secret to be a known length that the redeeming
+		// party can audit.  This is used to prevent fraud attacks between two
+		// currencies that have different maximum data sizes.
+		b.AddOp(txscript.OP_SIZE)
+		b.AddInt64(secretSize)
+		b.AddOp(txscript.OP_EQUALVERIFY)
+
 		// Require initiator's secret to be known to redeem the output.
 		b.AddOp(txscript.OP_SHA256)
 		b.AddData(secretHash)

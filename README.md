@@ -1,7 +1,7 @@
-**NOTICE Jan 10 2018:** The atomic swap contract has been updated to use SHA256
- secret hashes (instead of RIPEMD160) as it is more secure and has wider
- compatibility with altcoins.  Old contracts will not be usable by the new tools
- and vice-versa.  Please rebuild all tools before conducting new atomic swaps.
+**NOTICE Mar 1 2018:** The atomic swap contract has been updated to specify the
+secret sizes to prevent fraudulent swaps between two cryptocurrencies with
+different maximum data sizes.  Old contracts will not be usable by the new tools
+and vice-versa.  Please rebuild all tools before conducting new atomic swaps.
 
 # Decred cross-chain atomic swapping
 
