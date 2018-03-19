@@ -468,62 +468,75 @@ func fundTransactionJsonParser(rawResp json.RawMessage) (fundedTx *wire.MsgTx, f
 // wallet.  If unset, it attempts to find an estimate using estimatesmartfee 6
 // and estimatefee 6.  If all of these fail, it falls back to mempool relay fee policy.
 func getFeePerKb(c *rpc.Client) (useFee, relayFee btcutil.Amount, err error) {
-	info, err := c.GetInfo()
-	if err != nil {
-		return 0, 0, fmt.Errorf("getinfo: %v", err)
+	var netInfoResp struct {
+		RelayFee float64 `json:"relayfee"`
 	}
-	relayFee, err = btcutil.NewAmount(info.RelayFee)
+	var walletInfoResp struct {
+		PayTxFee float64 `json:"paytxfee"`
+	}
+	var estimateResp struct {
+		FeeRate float64 `json:"feerate"`
+	}
+
+	netInfoRawResp, err := c.RawRequest("getnetworkinfo", nil)
+	if err == nil {
+		err = json.Unmarshal(netInfoRawResp, &netInfoResp)
+		if err != nil {
+			return 0, 0, err
+		}
+	}
+	walletInfoRawResp, err := c.RawRequest("getwalletinfo", nil)
+	if err == nil {
+		err = json.Unmarshal(walletInfoRawResp, &walletInfoResp)
+		if err != nil {
+			return 0, 0, err
+		}
+	}
+
+	relayFee, err = btcutil.NewAmount(netInfoResp.RelayFee)
 	if err != nil {
 		return 0, 0, err
 	}
-	maxFee := info.PaytxFee
-	if info.PaytxFee != 0 {
-		if info.RelayFee > maxFee {
-			maxFee = info.RelayFee
+	payTxFee, err := btcutil.NewAmount(walletInfoResp.PayTxFee)
+	if err != nil {
+		return 0, 0, err
+	}
+
+	// Use user-set wallet fee when set and not lower than the network relay
+	// fee.
+	if payTxFee != 0 {
+		maxFee := payTxFee
+		if relayFee > maxFee {
+			maxFee = relayFee
 		}
-		useFee, err = btcutil.NewAmount(maxFee)
+		return maxFee, relayFee, nil
+	}
+
+	params := []json.RawMessage{[]byte("6")}
+	estimateRawResp, err := c.RawRequest("estimatesmartfee", params)
+	if err != nil {
+		return 0, 0, err
+	}
+
+	err = json.Unmarshal(estimateRawResp, &estimateResp)
+	if err == nil && estimateResp.FeeRate > 0 {
+		useFee, err = btcutil.NewAmount(estimateResp.FeeRate)
+		if relayFee > useFee {
+			useFee = relayFee
+		}
 		return useFee, relayFee, err
 	}
 
-	estimateSmartRawResp, err := c.RawRequest("estimatesmartfee", []json.RawMessage{[]byte("6")})
-	if err == nil {
-		var respFee struct {
-			SmartFee float64 `json:"feerate"`
-			Blocks   int8    `json:"blocks"`
-		}
-		err = json.Unmarshal(estimateSmartRawResp, &respFee)
-		if err == nil && respFee.SmartFee != -1 {
-			useFee, err = btcutil.NewAmount(respFee.SmartFee)
-			if relayFee > useFee {
-				useFee = relayFee
-			}
-			return useFee, relayFee, err
-		}
-	}
-
-	estimateRawResp, err := c.RawRequest("estimatefee", []json.RawMessage{[]byte("6")})
-	if err == nil {
-		var estimateResp float64 = -1
-		err = json.Unmarshal(estimateRawResp, &estimateResp)
-		if err == nil && estimateResp != -1 {
-			useFee, err = btcutil.NewAmount(estimateResp)
-			if relayFee > useFee {
-				useFee = relayFee
-			}
-			return useFee, relayFee, err
-		}
-	}
-
 	fmt.Println("warning: falling back to mempool relay fee policy")
-	useFee, err = btcutil.NewAmount(info.RelayFee)
-	return useFee, relayFee, err
+	return relayFee, relayFee, nil
 }
 
 // getRawChangeAddress calls the getrawchangeaddress JSON-RPC method.  It is
 // implemented manually as the rpcclient implementation always passes the
 // account parameter which was removed in Bitcoin Core 0.15.
 func getRawChangeAddress(c *rpc.Client) (btcutil.Address, error) {
-	rawResp, err := c.RawRequest("getrawchangeaddress", nil)
+	params := []json.RawMessage{[]byte(`"legacy"`)}
+	rawResp, err := c.RawRequest("getrawchangeaddress", params)
 	if err != nil {
 		return nil, err
 	}
