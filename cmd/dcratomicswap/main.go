@@ -471,6 +471,9 @@ func buildContract(ctx context.Context, c pb.WalletServiceClient, args *contract
 	if err != nil {
 		return nil, err
 	}
+	if _, ok := refundAddr.(*dcrutil.AddressPubKeyHash); !ok {
+		return nil, fmt.Errorf("NextAddress: address %v is not P2PKH", refundAddr)
+	}
 
 	contract, err := atomicSwapContract(refundAddr.Hash160(), args.them.Hash160(),
 		args.locktime, args.secretHash)

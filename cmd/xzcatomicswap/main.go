@@ -516,6 +516,10 @@ func getRawChangeAddress(c *rpc.Client) (xzcutil.Address, error) {
 		return nil, fmt.Errorf("address %v is not intended for use on %v",
 			addrStr, chainParams.Name)
 	}
+	if _, ok := addr.(*xzcutil.AddressPubKeyHash); !ok {
+		return nil, fmt.Errorf("getrawchangeaddress: address %v is not P2PKH",
+			addr)
+	}
 	return addr, nil
 }
 
