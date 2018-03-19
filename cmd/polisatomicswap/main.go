@@ -379,7 +379,7 @@ func walletPort(params *chaincfg.Params) string {
 	case &chaincfg.MainNetParams:
 		return "24127"
 	case &chaincfg.TestNet3Params:
-		return "24130"
+		return "24131"
 	default:
 		return ""
 	}
@@ -474,7 +474,7 @@ func getFeePerKb(c *rpc.Client) (useFee, relayFee gopolisutil.Amount, err error)
 			return 0, 0, err
 		}
 	}
-	walletInfoRawResp, err := c.RawRequest("walletinfo", nil)
+	walletInfoRawResp, err := c.RawRequest("getwalletinfo", nil)
 	if err == nil {
 		err = json.Unmarshal(walletInfoRawResp, &walletInfoResp)
 		if err != nil {
@@ -524,8 +524,7 @@ func getFeePerKb(c *rpc.Client) (useFee, relayFee gopolisutil.Amount, err error)
 // implemented manually as the rpcclient implementation always passes the
 // account parameter which was removed in Polis Core 0.15.
 func getRawChangeAddress(c *rpc.Client) (gopolisutil.Address, error) {
-	params := []json.RawMessage{[]byte(`"legacy"`)}
-	rawResp, err := c.RawRequest("getrawchangeaddress", params)
+	rawResp, err := c.RawRequest("getrawchangeaddress", nil)
 	if err != nil {
 		return nil, err
 	}

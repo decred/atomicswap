@@ -14,9 +14,9 @@ the following coins and wallets:
 * Litecoin ([Litecoin Core](https://github.com/litecoin-project/litecoin))
 * Monacoin ([Monacoin Core](https://github.com/monacoinproject/monacoin))
 * Particl ([Particl Core](https://github.com/particl/particl-core))
+* Polis ([Polis Core](https://github.com/polispay/polis))
 * Vertcoin ([Vertcoin Core](https://github.com/vertcoin/vertcoin))
 * Viacoin ([Viacoin Core](https://github.com/viacoin/viacoin))
-* Polis ([Polis Core](https://github.com/polispay/polis))
 
 
 Pull requests implementing support for additional cryptocurrencies and wallets
