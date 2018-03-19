@@ -16,6 +16,7 @@ the following coins and wallets:
 * Particl ([Particl Core](https://github.com/particl/particl-core))
 * Vertcoin ([Vertcoin Core](https://github.com/vertcoin/vertcoin))
 * Viacoin ([Viacoin Core](https://github.com/viacoin/viacoin))
+* Zcoin ([Zcoin Core](https://github.com/zcoinofficial/zcoin))
 
 Pull requests implementing support for additional cryptocurrencies and wallets
 are encouraged.  See [GitHub project
