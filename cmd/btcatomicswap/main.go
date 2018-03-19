@@ -474,7 +474,7 @@ func getFeePerKb(c *rpc.Client) (useFee, relayFee btcutil.Amount, err error) {
 			return 0, 0, err
 		}
 	}
-	walletInfoRawResp, err := c.RawRequest("walletinfo", nil)
+	walletInfoRawResp, err := c.RawRequest("getwalletinfo", nil)
 	if err == nil {
 		err = json.Unmarshal(walletInfoRawResp, &walletInfoResp)
 		if err != nil {
