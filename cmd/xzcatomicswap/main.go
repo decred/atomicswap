@@ -455,9 +455,15 @@ func fundRawTransaction(c *rpc.Client, tx *wire.MsgTx, feePerKb xzcutil.Amount) 
 
 // getFeePerKb queries the wallet for the transaction relay fee/kB to use and
 // the minimum mempool relay fee.  It first tries to get the user-set fee in the
-// wallet.  If unset, it attempts to find an estimate using estimatefee 6.  If
-// both of these fail, it falls back to mempool relay fee policy.
+// wallet.  If unset, it attempts to find an estimate using estimatesmartfee 6.
+// If both of these fail, it falls back to mempool relay fee policy.
+//
+// For Zcoin this will always fall back until there is a statistically significant
+// number of transactions per block
 func getFeePerKb(c *rpc.Client) (useFee, relayFee xzcutil.Amount, err error) {
+	var estimateResp struct {
+		FeeRate float64 `json:"feerate"`
+	}
 	info, err := c.GetInfo()
 	if err != nil {
 		return 0, 0, fmt.Errorf("getinfo: %v", err)
@@ -476,14 +482,13 @@ func getFeePerKb(c *rpc.Client) (useFee, relayFee xzcutil.Amount, err error) {
 	}
 
 	params := []json.RawMessage{[]byte("6")}
-	estimateRawResp, err := c.RawRequest("estimatefee", params)
+	estimateRawResp, err := c.RawRequest("estimatesmartfee", params)
 	if err != nil {
 		return 0, 0, err
 	}
-	var estimateResp float64 = -1
 	err = json.Unmarshal(estimateRawResp, &estimateResp)
-	if err == nil && estimateResp != -1 {
-		useFee, err = xzcutil.NewAmount(estimateResp)
+	if err == nil && estimateResp.FeeRate > 0 {
+		useFee, err = xzcutil.NewAmount(estimateResp.FeeRate)
 		if relayFee > useFee {
 			useFee = relayFee
 		}
