@@ -34,7 +34,7 @@ const verify = true
 
 const secretSize = 32
 
-const txVersion = 2
+const txVersion = 2 // Changed on BIP68, BIP112 and BIP113 Dashpay Upstream
 
 var (
 	chainParams = &chaincfg.MainNetParams
