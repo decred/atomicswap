@@ -471,6 +471,9 @@ func buildContract(ctx context.Context, c pb.WalletServiceClient, args *contract
 	if err != nil {
 		return nil, err
 	}
+	if _, ok := refundAddr.(*dcrutil.AddressPubKeyHash); !ok {
+		return nil, fmt.Errorf("NextAddress: address %v is not P2PKH", refundAddr)
+	}
 
 	contract, err := atomicSwapContract(refundAddr.Hash160(), args.them.Hash160(),
 		args.locktime, args.secretHash)
@@ -945,6 +948,9 @@ func (cmd *auditContractCmd) runOfflineCommand() error {
 	if pushes == nil {
 		return errors.New("contract is not an atomic swap script recognized by this tool")
 	}
+	if pushes.SecretSize != secretSize {
+		return fmt.Errorf("contract specifies strange secret size %v", pushes.SecretSize)
+	}
 
 	contractAddr, err := dcrutil.NewAddressScriptHash(cmd.contract, chainParams)
 	if err != nil {
@@ -1000,6 +1006,13 @@ func atomicSwapContract(pkhMe, pkhThem *[ripemd160.Size]byte, locktime int64, se
 
 	b.AddOp(txscript.OP_IF) // Normal redeem path
 	{
+		// Require initiator's secret to be a known length that the redeeming
+		// party can audit.  This is used to prevent fraud attacks between two
+		// currencies that have different maximum data sizes.
+		b.AddOp(txscript.OP_SIZE)
+		b.AddInt64(secretSize)
+		b.AddOp(txscript.OP_EQUALVERIFY)
+
 		// Require initiator's secret to be known to redeem the output.
 		b.AddOp(txscript.OP_SHA256)
 		b.AddData(secretHash)

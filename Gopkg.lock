@@ -3,9 +3,27 @@
 
 [[projects]]
   branch = "master"
+  name = "github.com/DesWurstes/btcd"
+  packages = ["txscript"]
+  revision = "04fe8cbcd5f0ced5eaaa5bf88aee7f123750ac55"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/aead/skein"
+  packages = [".","threefish"]
+  revision = "9365ae6e95d294dc113a0b308852f97c916db233"
+
+[[projects]]
+  branch = "master"
   name = "github.com/agl/ed25519"
   packages = [".","edwards25519"]
   revision = "5312a61534124124185d41f09206b9fef1d88403"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/bitgoin/lyra2rev2"
+  packages = ["sha3"]
+  revision = "bae9ad2043bb55facb14c4918e909f88a7d3ed84"
 
 [[projects]]
   branch = "master"
@@ -48,6 +66,11 @@
   name = "github.com/btcsuite/websocket"
   packages = ["."]
   revision = "31079b6807923eb23992c421b114992b95131b55"
+
+[[projects]]
+  name = "github.com/cpacia/bchutil"
+  packages = ["."]
+  revision = "223045ec4d9ef2fcc7c6ed62f9a8ed80ac9bdf58"
 
 [[projects]]
   branch = "master"
@@ -138,6 +161,48 @@
 
 [[projects]]
   branch = "master"
+  name = "github.com/viacoin/viad"
+  packages = ["btcec","btcjson","chaincfg","chaincfg/chainhash","rpcclient","txscript","wire"]
+  revision = "506298a163934cfebda00bab6e372e73926b4e5b"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/viacoin/viautil"
+  packages = [".","base58","bech32"]
+  revision = "ed9ec48290bc085ae179946a14675bf2249fc718"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/viacoin/viawallet"
+  packages = ["wallet/txrules"]
+  revision = "a775b77c2dc41cc00d3156bc7b57e2ac9776a232"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/wakiyamap/lyra2rev2"
+  packages = ["."]
+  revision = "bae9ad2043bb55facb14c4918e909f88a7d3ed84"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/wakiyamap/monad"
+  packages = ["btcec","btcjson","chaincfg","chaincfg/chainhash","rpcclient","txscript","wire"]
+  revision = "8139a2a986a0a52dc149e53ec3167a1ce155d3c0"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/wakiyamap/monautil"
+  packages = [".","base58","bech32"]
+  revision = "f5bfcf53b9ae24b8146086c9c11790a5f0616d9d"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/wakiyamap/monawallet"
+  packages = ["wallet/txrules"]
+  revision = "b4defd9b37d7e1c6d1e0a9ff278700dfc8050d9d"
+
+[[projects]]
+  branch = "master"
   name = "github.com/zcoinofficial/xzcd"
   packages = ["btcec","btcjson","chaincfg","chaincfg/chainhash","rpcclient","txscript","wire"]
   revision = "ae307d1ae9070c5434a6a203992db0ad35712e96"
@@ -193,6 +258,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "3ec7a1fde3d2b2f1dc9aa465d2bfcb54d566aa8323a5816889940639b8f2087e"
+  inputs-digest = "bd710a278fa414ae0895a72001f20209f5890e4bedfd3311c03db28a98da0430"
   solver-name = "gps-cdcl"
   solver-version = 1

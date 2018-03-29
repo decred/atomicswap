@@ -1,15 +1,27 @@
-**NOTICE Jan 10 2018:** The atomic swap contract has been updated to use SHA256
- secret hashes (instead of RIPEMD160) as it is more secure and has wider
- compatibility with altcoins.  Old contracts will not be usable by the new tools
- and vice-versa.  Please rebuild all tools before conducting new atomic swaps.
+**NOTICE Mar 1 2018:** The atomic swap contract has been updated to specify the
+secret sizes to prevent fraudulent swaps between two cryptocurrencies with
+different maximum data sizes.  Old contracts will not be usable by the new tools
+and vice-versa.  Please rebuild all tools before conducting new atomic swaps.
 
 # Decred cross-chain atomic swapping
 
 This repo contains utilities to manually perform cross-chain atomic swaps
-between Decred and other cryptocurrencies.  At the moment, Bitcoin ([Bitcoin
-Core](https://github.com/bitcoin/bitcoin)), Litecoin ([Litecoin Core](https://github.com/litecoin-project/litecoin)), Vertcoin ([Vertcoin Core](https://github.com/vertcoin/vertcoin)) and Particl ([Particl Core](https://github.com/particl/particl-core)) are the four
-other blockchains and wallets supported.  Support for other blockchains or 
-wallets could be added in the future.
+between Decred and other cryptocurrencies.  At the moment, support exists for
+the following coins and wallets:
+
+* Bitcoin ([Bitcoin Core](https://github.com/bitcoin/bitcoin))
+* Bitcoin Cash ([Bitcoin ABC](https://github.com/Bitcoin-ABC/bitcoin-abc), [Bitcoin Unlimited](https://github.com/BitcoinUnlimited/BitcoinUnlimited), [Bitcoin XT](https://github.com/bitcoinxt/bitcoinxt))
+* Litecoin ([Litecoin Core](https://github.com/litecoin-project/litecoin))
+* Monacoin ([Monacoin Core](https://github.com/monacoinproject/monacoin))
+* Particl ([Particl Core](https://github.com/particl/particl-core))
+* Vertcoin ([Vertcoin Core](https://github.com/vertcoin/vertcoin))
+* Viacoin ([Viacoin Core](https://github.com/viacoin/viacoin))
+* Zcoin ([Zcoin Core](https://github.com/zcoinofficial/zcoin))
+
+Pull requests implementing support for additional cryptocurrencies and wallets
+are encouraged.  See [GitHub project
+1](https://github.com/decred/atomicswap/projects/1) for the status of coins
+being considered.
 
 These tools do not operate solely on-chain.  A side-channel is required between
 each party performing the swap in order to exchange additional data.  This
@@ -386,8 +398,8 @@ and refund the contract.
 Several steps require working with a raw transaction published by the other
 party.  While the transactions can sometimes be looked up from a local node
 using the `getrawtransaction` JSON-RPC, this method can be unreliable since the
-set of queryable transactions depends on the current UTXO set (bitcoind,
-litecoind, vertcoind, particld) or may require the transaction index to be enabled (dcrd).
+set of queryable transactions depends on the current UTXO set or may require a
+transaction index to be enabled.
 
 Another method of discovering these transactions is to use a public blockchain
 explorer.  Not all explorers expose this info through the main user interface so
