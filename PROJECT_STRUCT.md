@@ -12,3 +12,11 @@ These are referenced for all associated projects by the dependency tool in the
 - Gopkg.toml
 - Gopkg.lock
 
+TO BUILD & RUN THE TOOLS CLONE THE **github.com/decred/atomicswap** repo, __not__ this one
+
+THE xzcd, xzcutil, xzcwallet code will be 'pulled in' from zcoinofficial
+
+Please also refer to `The main README.md`
+
+devwarrior.sec@gmail.com
+
