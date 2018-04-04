@@ -20,11 +20,16 @@ if [ ! -x "$(type -p gometalinter)" ]; then
   exit 1
 fi
 
+cd cmd
 # Automatic checks
-test -z "$(gometalinter --vendor --disable-all \
---enable=gofmt \
---enable=vet \
---enable=gosimple \
---enable=unconvert \
---enable=ineffassign \
---deadline=10m ./... 2>&1 | tee /dev/stderr)"
+for dir in ./*; do
+	cd $dir;
+	test -z "$(gometalinter --vendor --disable-all \
+	--enable=gofmt \
+	--enable=vet \
+	--enable=gosimple \
+	--enable=unconvert \
+	--enable=ineffassign \
+	--deadline=10m ./... 2>&1 | tee /dev/stderr)";
+	cd ..;
+done

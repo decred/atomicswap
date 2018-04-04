@@ -4,8 +4,10 @@ go:
 sudo: false
 install:
   - go get -v github.com/golang/dep/cmd/dep
-  - dep ensure
-  - go install ./cmd/...
+  - cd cmd
+  - for dir in ./*; do cd $dir; dep ensure; cd ..; done
+  - go install ./...
+  - cd ..
   - go get -v github.com/alecthomas/gometalinter
   - gometalinter --install
 script:
