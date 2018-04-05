@@ -43,18 +43,6 @@
 
 [[constraint]]
   branch = "master"
-  name = "github.com/polissuite/gopolis"
-
-[[constraint]]
-  branch = "master"
-  name = "github.com/polissuite/gopolisutil"
-
-[[constraint]]
-  branch = "master"
-  name = "github.com/polissuite/gopoliswallet"
-
-[[constraint]]
-  branch = "master"
   name = "github.com/viacoin/viad"
 
 [[constraint]]
@@ -132,3 +120,27 @@
 [[constraint]]
   branch = "master"
   name = "github.com/wakiyamap/monawallet"
+
+[[constraint]]
+  branch = "master"
+  name = "github.com/zcoinofficial/xzcd"
+
+[[constraint]]
+  branch = "master"
+  name = "github.com/zcoinofficial/xzcutil"
+
+[[constraint]]
+  branch = "master"
+  name = "github.com/zcoinofficial/xzcwallet"
+  
+[[constraint]] 
+  branch = "master" 
+  name = "github.com/polissuite/gopolis"
+  
+[[constraint]] 
+  branch = "master" 
+  name = "github.com/polissuite/gopolisutil"
+ 
+[[constraint]] 
+  branch = "master" 
+  name = "github.com/polissuite/gopoliswallet
