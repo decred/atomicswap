@@ -474,7 +474,7 @@ func getFeePerKb(c *rpc.Client) (useFee, relayFee btcutil.Amount, err error) {
 			return 0, 0, err
 		}
 	}
-	walletInfoRawResp, err := c.RawRequest("walletinfo", nil)
+	walletInfoRawResp, err := c.RawRequest("getwalletinfo", nil)
 	if err == nil {
 		err = json.Unmarshal(walletInfoRawResp, &walletInfoResp)
 		if err != nil {
@@ -541,6 +541,10 @@ func getRawChangeAddress(c *rpc.Client) (btcutil.Address, error) {
 	if !addr.IsForNet(chainParams) {
 		return nil, fmt.Errorf("address %v is not intended for use on %v",
 			addrStr, chainParams.Name)
+	}
+	if _, ok := addr.(*btcutil.AddressPubKeyHash); !ok {
+		return nil, fmt.Errorf("getrawchangeaddress: address %v is not P2PKH",
+			addr)
 	}
 	return addr, nil
 }
