@@ -143,6 +143,42 @@
 
 [[projects]]
   branch = "master"
+  name = "github.com/polissuite/gopolis"
+  packages = [
+    "btcec",
+    "btcjson",
+    "chaincfg",
+    "chaincfg/chainhash",
+    "rpcclient",
+    "txscript",
+    "wire"
+  ]
+  revision = "f2f170540007e291d6c263edf66e8694feb9528f"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/polissuite/gopolisutil"
+  packages = [
+    ".",
+    "base58",
+    "bech32"
+  ]
+  revision = "9a399fc0eeb0c35c6666f78e4d3a6d17e186c51f"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/polissuite/gopoliswallet"
+  packages = ["wallet/txrules"]
+  revision = "c5f2ea420bc49a93b1c9cb3c0a57a0c31dc639df"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/polissuite/gox11hash"
+  packages = ["."]
+  revision = "66b5c7eba786ac6ce9ab51a24e24bb2d319b488c"
+
+[[projects]]
+  branch = "master"
   name = "github.com/vertcoin/vtcd"
   packages = ["btcec","btcjson","chaincfg","chaincfg/chainhash","rpcclient","txscript","wire"]
   revision = "e703c22063ac06bc1a776d60c9f5b60b6bed17c8"
