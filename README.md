@@ -3,14 +3,15 @@ secret sizes to prevent fraudulent swaps between two cryptocurrencies with
 different maximum data sizes.  Old contracts will not be usable by the new tools
 and vice-versa.  Please rebuild all tools before conducting new atomic swaps.
 
-# Decred cross-chain atomic swapping
+# Decred-compatible cross-chain atomic swapping
 
-This repo contains utilities to manually perform cross-chain atomic swaps
-between Decred and other cryptocurrencies.  At the moment, support exists for
-the following coins and wallets:
+This repository contains utilities to manually perform cross-chain atomic swaps
+between various supported pairs of cryptocurrencies.  At the moment, support
+exists for the following coins and wallets:
 
 * Bitcoin ([Bitcoin Core](https://github.com/bitcoin/bitcoin))
 * Bitcoin Cash ([Bitcoin ABC](https://github.com/Bitcoin-ABC/bitcoin-abc), [Bitcoin Unlimited](https://github.com/BitcoinUnlimited/BitcoinUnlimited), [Bitcoin XT](https://github.com/bitcoinxt/bitcoinxt))
+* Decred ([dcrwallet](https://github.com/decred/dcrwallet))
 * Litecoin ([Litecoin Core](https://github.com/litecoin-project/litecoin))
 * Monacoin ([Monacoin Core](https://github.com/monacoinproject/monacoin))
 * Particl ([Particl Core](https://github.com/particl/particl-core))
@@ -22,7 +23,8 @@ the following coins and wallets:
 Pull requests implementing support for additional cryptocurrencies and wallets
 are encouraged.  See [GitHub project
 1](https://github.com/decred/atomicswap/projects/1) for the status of coins
-being considered.
+being considered.  Implementing support for a new cryptocurrency provides atomic
+swap compatibility between all current and future supported coins.
 
 These tools do not operate solely on-chain.  A side-channel is required between
 each party performing the swap in order to exchange additional data.  This
@@ -43,7 +45,6 @@ Pre-requirements:
 
   - Go 1.9 or later
   - [dep](https://github.com/golang/dep)
-  - `dcrwallet` 1.1.0 or later (for `dcratomicswap`)
 
 ```
 $ cd $GOPATH/src/github.com/decred
