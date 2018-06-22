@@ -14,7 +14,9 @@ found as [/cmd/ethatomicswap/solidity/contracts/AtomicSwap.sol](/cmd/ethatomicsw
 
 * Install NodeJS (10.5.0), which bundles _npm_ as well;
 * Install truffle: `npm install -g truffle`;
-* Install and run Ganache: <https://truffleframework.com/ganache>;
+
+Optionally you can also install and run
+Ganache ( <https://truffleframework.com/ganache>).
 
 Once you have fulfilled all prerequisites listed above,
 you can run the unit tests provided with the AtomicSwap contract, using:

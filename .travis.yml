@@ -1,13 +1,26 @@
-language: go
-go:
-  - 1.9.x
-sudo: false
-install:
-  - go get -v github.com/golang/dep/cmd/dep
-  - dep ensure
-  - go install ./cmd/...
-  - go get -v github.com/alecthomas/gometalinter
-  - gometalinter --install
-script:
-  - export PATH=$PATH:$HOME/gopath/bin
-  - ./goclean.sh
+jobs:
+  include:
+    - stage: test
+      language: go
+      go:
+        - 1.9.x
+        - 1.10.x
+      sudo: false
+      install:
+        - go get -v github.com/golang/dep/cmd/dep
+        - dep ensure
+        - go install ./cmd/...
+        - go get -v github.com/alecthomas/gometalinter
+        - gometalinter --install
+      script:
+        - export PATH=$PATH:$HOME/gopath/bin
+        - ./goclean.sh
+    - stage: test
+      language: node_js
+      node_js:
+        - "node"
+      install:
+        - npm install -g truffle
+      script:
+        - cd cmd/ethatomicswap/solidity
+        - truffle test
