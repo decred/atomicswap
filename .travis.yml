@@ -22,5 +22,5 @@ jobs:
       install:
         - npm install -g truffle
       script:
-        - cd cmd/ethatomicswap/solidity
+        - cd cmd/ethatomicswap/contract/src
         - truffle test
