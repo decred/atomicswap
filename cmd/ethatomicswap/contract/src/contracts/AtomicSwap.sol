@@ -96,9 +96,16 @@ contract AtomicSwap {
         _;
     }
 
+    modifier hasNoNilValues(uint refundTime) {
+        require(msg.value > 0);
+        require(refundTime > 0);
+        _;
+    }
+
     function initiate(uint refundTime, bytes32 secretHash, address participant)
         public
         payable
+        hasNoNilValues(refundTime)
         isNotInitiated(secretHash)
     {
         swaps[secretHash].initTimestamp = block.timestamp;
@@ -122,6 +129,7 @@ contract AtomicSwap {
     function participate(uint refundTime, bytes32 secretHash, address initiator)
         public
         payable
+        hasNoNilValues(refundTime)
         isNotInitiated(secretHash)
     {
         swaps[secretHash].initTimestamp = block.timestamp;

@@ -836,4 +836,22 @@ contract("AtomicSwap tests", accounts => {
         assert.equal(balanceSecondAccount.toString(), expectedBalanceSecondAccount.toString(),
             "balance of second account should be as expected");
     });
+
+    it("shouldn't be possible to create a contract with no value", async () => {
+        const refundTime = 60;
+
+        await tryCatch(atomicSwap.participate(refundTime, secretHash, secondAccount,
+            {from: firstAccount, value: 0, gasPrice: 0}), errTypes.revert)
+        await tryCatch(atomicSwap.initiate(refundTime, secretHash, secondAccount,
+            {from: firstAccount, value: 0, gasPrice: 0}), errTypes.revert)
+    });
+
+    it("shouldn't be possible to create a contract with no refundTime", async () => {
+        const contractAmount = web3.toBigNumber(web3.toWei('0.01', 'ether'));
+
+        await tryCatch(atomicSwap.participate(0, secretHash, secondAccount,
+            {from: firstAccount, value: contractAmount, gasPrice: 0}), errTypes.revert)
+        await tryCatch(atomicSwap.initiate(0, secretHash, secondAccount,
+            {from: firstAccount, value: contractAmount, gasPrice: 0}), errTypes.revert)
+    });
 });
