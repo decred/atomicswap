@@ -71,7 +71,7 @@ involved.
 
 One party (called counterparty 1 or the initiator) generates a secret and pays
 the intended trade amount into a contract transaction.  The contract output can
-be redeemed by the second party (called countryparty 2 or the participant) as
+be redeemed by the second party (called counterparty 2 or the participant) as
 long as the secret is known.  If a period of time (typically 48 hours) expires
 after the contract transaction has been mined but has not been redeemed by the
 participant, the contract output can be refunded back to the initiator's wallet.
