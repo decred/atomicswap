@@ -15,6 +15,7 @@ jobs:
       script:
         - export PATH=$PATH:$HOME/gopath/bin
         - ./goclean.sh
+        - go test -v -race ./cmd/ethatomicswap
     - stage: test
       language: node_js
       node_js:
