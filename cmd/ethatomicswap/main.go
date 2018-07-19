@@ -20,11 +20,13 @@ import (
 	"strings"
 	"time"
 
+	"github.com/bgentry/speakeasy"
 	ethereum "github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/accounts/keystore"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/ethclient"
@@ -46,22 +48,14 @@ const (
 	maxGasLimit = 210000
 )
 
-// TODO: find way to not require keyFile/passphrase
-//       (and certainly not in the way we currently do)
-
 var (
-	flagset        = flag.NewFlagSet("", flag.ExitOnError)
-	connectFlag    = flagset.String("s", "http://localhost:8545", "endpoint of Ethereum RPC server")
-	contractFlag   = flagset.String("c", "", "hex-enoded address of the deployed contract")
-	keyFileFlag    = flagset.String("keyfile", "", "file containing the key used for signing")
-	passphraseFlag = flagset.String("passphrase", "", "passphrase used for decrypting the key")
-	timeoutFlag    = flagset.Duration("t", 0, "optional timeout of any call made")
-	testnetFlag    = flagset.Bool("testnet", false, "use testnet (Rinkeby) network")
+	flagset      = flag.NewFlagSet("", flag.ExitOnError)
+	connectFlag  = flagset.String("s", "http://localhost:8545", "endpoint of Ethereum RPC server")
+	contractFlag = flagset.String("c", "", "hex-enoded address of the deployed contract")
+	accountFlag  = flagset.String("account", "", "account file, account address or nothing for the daemon's first account")
+	timeoutFlag  = flagset.Duration("t", 0, "optional timeout of any call made")
+	testnetFlag  = flagset.Bool("testnet", false, "use testnet (Rinkeby) network")
 )
-
-// TODO: better error reporting:
-//       now all contract-originated errors return
-//       "failed to estimate gas needed: gas required exceeds allowance or always failing transaction"
 
 // There are two directions that the atomic swap can be performed, as the
 // initiator can be on either chain.  This tool only deals with creating the
@@ -463,14 +457,6 @@ func generateSecretHashPair() (secret, secretHash [sha256.Size]byte) {
 	return
 }
 
-func newTransactOpts() (*bind.TransactOpts, error) {
-	f, err := os.Open(*keyFileFlag)
-	if err != nil {
-		return nil, fmt.Errorf("failed to open key file: %v", err)
-	}
-	return bind.NewTransactor(f, *passphraseFlag)
-}
-
 func promptPublishTx(name string) (bool, error) {
 	reader := bufio.NewReader(os.Stdin)
 	for {
@@ -541,6 +527,10 @@ func (cmd *initiateCmd) runCommand(sct swapContractTransactor) error {
 	fmt.Printf("Secret:      %x\n", secret)
 	fmt.Printf("Secret hash: %x\n\n", secretHash)
 
+	if sct.autoAccount {
+		fmt.Printf("Author's refund address: %x\n\n", sct.fromAddr)
+	}
+
 	initiateTxCost := new(big.Int).Mul(tx.GasPrice(), new(big.Int).SetUint64(tx.Gas()))
 	fmt.Printf("Contract fee: %s ETH\n", formatWeiAsEthString(initiateTxCost))
 	refundTxCost, err := sct.maxGasCost()
@@ -581,6 +571,10 @@ func (cmd *participateCmd) runCommand(sct swapContractTransactor) error {
 	fmt.Printf("Amount: %s Wei (%s ETH)\n\n",
 		cmd.amount.String(), formatWeiAsEthString(cmd.amount))
 
+	if sct.autoAccount {
+		fmt.Printf("Author's refund address: %x\n\n", sct.fromAddr)
+	}
+
 	participateTxCost := new(big.Int).Mul(tx.GasPrice(), new(big.Int).SetUint64(tx.Gas()))
 	fmt.Printf("Contract fee: %s ETH\n", formatWeiAsEthString(participateTxCost))
 	refundTxCost, err := sct.maxGasCost()
@@ -616,12 +610,6 @@ func (cmd *redeemCmd) runCommand(sct swapContractTransactor) error {
 	params, err := unpackContractInputParams(sct.abi, cmd.contractTx)
 	if err != nil {
 		return err
-	}
-	expectedSecretHash := sha256Hash(cmd.secret[:])
-	if expectedSecretHash != params.SecretHash {
-		return fmt.Errorf(
-			"contract transaction contains unexpected secret hash (%x)",
-			params.SecretHash)
 	}
 	tx, err := sct.redeemTx(params.SecretHash, cmd.secret)
 	if err != nil {
@@ -847,29 +835,64 @@ func newSwapContractTransactor(c *ethClient, contractAddr common.Address) (swapC
 	if err != nil {
 		return swapContractTransactor{}, fmt.Errorf("failed to read (smart) contract ABI: %v", err)
 	}
-	signer, fromAddr, err := newSigner()
-	if err != nil {
-		return swapContractTransactor{}, fmt.Errorf("failed to create tx signer: %v", err)
+	switch account := *accountFlag; {
+	case account == "":
+		var accounts []common.Address
+		err := c.rpcClient.CallContext(newContext(), &accounts, "eth_accounts")
+		if err != nil {
+			return swapContractTransactor{}, fmt.Errorf("failed to list unlocked accounts: %v", err)
+		}
+		if len(accounts) == 0 {
+			return swapContractTransactor{}, errors.New("no unlocked accounts were found")
+		}
+		// sign using daemon with a random account
+		return swapContractTransactor{
+			abi:          parsed,
+			client:       c,
+			contractAddr: contractAddr,
+			fromAddr:     accounts[0],
+			autoAccount:  true,
+		}, nil
+
+	case common.IsHexAddress(account):
+		// sign using daemon
+		return swapContractTransactor{
+			abi:          parsed,
+			client:       c,
+			contractAddr: contractAddr,
+			fromAddr:     common.HexToAddress(account),
+		}, nil
+
+	default:
+		// sign using given key
+		signer, fromAddr, err := newSigner(account)
+		if err != nil {
+			return swapContractTransactor{}, fmt.Errorf("failed to create tx signer: %v", err)
+		}
+		return swapContractTransactor{
+			abi:          parsed,
+			signer:       signer,
+			client:       c,
+			fromAddr:     fromAddr,
+			contractAddr: contractAddr,
+		}, nil
 	}
-	return swapContractTransactor{
-		abi:          parsed,
-		signer:       signer,
-		client:       c,
-		fromAddr:     fromAddr,
-		contractAddr: contractAddr,
-	}, nil
 }
 
 // newSigner creates a signer func using the flag-passed
 // private credentials of the sender
-func newSigner() (bind.SignerFn, common.Address, error) {
-	json, err := ioutil.ReadFile(*keyFileFlag)
+func newSigner(path string) (bind.SignerFn, common.Address, error) {
+	json, err := ioutil.ReadFile(path)
 	if err != nil {
-		return nil, common.Address{}, fmt.Errorf("failed to read key file (%s): %v", *keyFileFlag, err)
+		return nil, common.Address{}, fmt.Errorf("failed to read encrypted account/key file (%s) content: %v", path, err)
 	}
-	key, err := keystore.DecryptKey(json, *passphraseFlag)
+	passphrase, err := speakeasy.Ask("Account passphrase: ")
 	if err != nil {
-		return nil, common.Address{}, fmt.Errorf("failed to decrypt (JSON) file (%s): %v", *keyFileFlag, err)
+		return nil, common.Address{}, fmt.Errorf("failed to get passphrase from STDIN: %v", err)
+	}
+	key, err := keystore.DecryptKey(json, passphrase)
+	if err != nil {
+		return nil, common.Address{}, fmt.Errorf("failed to decrypt (JSON) account/key file (%s): %v", path, err)
 	}
 	privKey := key.PrivateKey
 	keyAddr := crypto.PubkeyToAddress(privKey.PublicKey)
@@ -894,6 +917,9 @@ type (
 		client       *ethClient
 		fromAddr     common.Address
 		contractAddr common.Address
+		autoAccount  bool // defines if an account is automatically selected
+
+		_contract *contract.Contract // created only once
 	}
 
 	// swapTransaction adds send functionality to the transaction,
@@ -906,6 +932,17 @@ type (
 )
 
 func (sct *swapContractTransactor) initiateTx(amount *big.Int, secretHash [sha256.Size]byte, participant common.Address) (*swapTransaction, error) {
+	// validate tx does not exist yet,
+	// as to provide more meaningful error messages
+	switch _, err := sct.getSwapContract(secretHash); err {
+	case errNotExists:
+		// this is what we want
+	case nil:
+		return nil, errors.New("secret hash is already used for another atomic swap contract")
+	default:
+		return nil, fmt.Errorf("unexpected error while checking for an existing contract: %v", err)
+	}
+	// create initiate tx
 	return sct.newTransaction(
 		amount, "initiate",
 		// lock duration
@@ -918,6 +955,16 @@ func (sct *swapContractTransactor) initiateTx(amount *big.Int, secretHash [sha25
 }
 
 func (sct *swapContractTransactor) participateTx(amount *big.Int, secretHash [sha256.Size]byte, initiator common.Address) (*swapTransaction, error) {
+	// validate tx does not exist yet,
+	// as to provide more meaningful error messages
+	switch _, err := sct.getSwapContract(secretHash); err {
+	case errNotExists:
+		// this is what we want
+	case nil:
+		return nil, errors.New("secret hash is already used for another atomic swap contract")
+	default:
+		return nil, fmt.Errorf("unexpected error while checking for an existing contract: %v", err)
+	}
 	return sct.newTransaction(
 		amount, "participate",
 		// lock duration
@@ -930,6 +977,34 @@ func (sct *swapContractTransactor) participateTx(amount *big.Int, secretHash [sh
 }
 
 func (sct *swapContractTransactor) redeemTx(secretHash, secret [sha256.Size]byte) (*swapTransaction, error) {
+	// validate swap contract,
+	// as to provide more meaningful errors
+	sc, err := sct.getSwapContract(secretHash)
+	if err != nil {
+		return nil, err
+	}
+	if sc.SecretHash != secretHash {
+		return nil, errors.New("invalid secret hash registered")
+	}
+	if userSecretHash := sha256Hash(secret[:]); sc.SecretHash != userSecretHash {
+		return nil, errors.New("secret does not match secret hash")
+	}
+	switch sc.Kind {
+	case swapKindInitiator:
+		if sc.Participant != sct.fromAddr {
+			return nil, fmt.Errorf("only the participant can redeem: unexpected address: %x", sct.fromAddr)
+		}
+	case swapKindParticipant:
+		if sc.Initiator != sct.fromAddr {
+			return nil, fmt.Errorf("only the initiator can redeem: unexpected address: %x", sct.fromAddr)
+		}
+	default:
+		return nil, fmt.Errorf("invalid atomic swap contract kind: %d", sc.Kind)
+	}
+	if sc.State != swapStateFilled {
+		return nil, errors.New("inactive atomic swap contract")
+	}
+	// create redeem tx
 	return sct.newTransaction(
 		nil, "redeem",
 		// secret,
@@ -940,11 +1015,47 @@ func (sct *swapContractTransactor) redeemTx(secretHash, secret [sha256.Size]byte
 }
 
 func (sct *swapContractTransactor) refundTx(secretHash [sha256.Size]byte) (*swapTransaction, error) {
+	// validate swap contract,
+	// as to provide more meaningful errors
+	sc, err := sct.getSwapContract(secretHash)
+	if err != nil {
+		return nil, err
+	}
+	if sc.SecretHash != secretHash {
+		return nil, errors.New("invalid secret hash registered")
+	}
+	switch sc.Kind {
+	case swapKindInitiator:
+		if sc.Initiator != sct.fromAddr {
+			return nil, fmt.Errorf("only the participant can refund: unexpected address: %x", sct.fromAddr)
+		}
+	case swapKindParticipant:
+		if sc.Participant != sct.fromAddr {
+			return nil, fmt.Errorf("only the initiator can refund: unexpected address: %x", sct.fromAddr)
+		}
+	default:
+		return nil, fmt.Errorf("invalid atomic swap contract kind: %d", sc.Kind)
+	}
+	if sc.State != swapStateFilled {
+		return nil, errors.New("inactive atomic swap contract")
+	}
+	lockTime := time.Unix(bigIntPtrToUint64(sc.InitTimestamp)+bigIntPtrToUint64(sc.RefundTime), 0)
+	if dur := lockTime.Sub(time.Now()); dur >= 0 {
+		return nil, fmt.Errorf("contract is still locked for %v", dur+time.Second) // add 1 as to deal with the `0` second case
+	}
+	// create refund tx
 	return sct.newTransaction(
 		nil, "refund",
 		// secret hash
 		secretHash,
 	)
+}
+
+func bigIntPtrToUint64(i *big.Int) int64 {
+	if i == nil {
+		return 0
+	}
+	return i.Int64()
 }
 
 func (sct *swapContractTransactor) deployTx() (*swapTransaction, error) {
@@ -958,6 +1069,54 @@ func (sct *swapContractTransactor) maxGasCost() (*big.Int, error) {
 		return nil, fmt.Errorf("failed to suggest gas price: %v", err)
 	}
 	return gasPrice.Mul(gasPrice, big.NewInt(maxGasLimit)), nil
+}
+
+const (
+	swapStateEmpty uint8 = iota
+	swapStateFilled
+	swapStateRedeemed
+	swapStateRefunded
+)
+
+const (
+	swapKindInitiator uint8 = iota
+	swapKindParticipant
+)
+
+var (
+	errNotExists = errors.New("atomic swap contract does not exist")
+)
+
+func (sct *swapContractTransactor) getSwapContract(secretHash [32]byte) (*struct {
+	InitTimestamp *big.Int
+	RefundTime    *big.Int
+	SecretHash    [32]byte
+	Secret        [32]byte
+	Initiator     common.Address
+	Participant   common.Address
+	Value         *big.Int
+	Kind          uint8
+	State         uint8
+}, error) {
+	if sct._contract == nil {
+		var err error
+		sct._contract, err = contract.NewContract(sct.contractAddr, sct.client.Client)
+		if err != nil {
+			return nil, fmt.Errorf("failed to bind smart contract (at %x): %v", sct.contractAddr, err)
+		}
+	}
+	sc, err := sct._contract.Swaps(&bind.CallOpts{
+		Pending: false,
+		From:    sct.fromAddr,
+		Context: newContext(),
+	}, secretHash)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get swap contract from smart contract (at %x): %v", err)
+	}
+	if sc.State == swapStateEmpty {
+		return nil, errNotExists
+	}
+	return &sc, nil
 }
 
 func (sct *swapContractTransactor) newTransaction(amount *big.Int, name string, params ...interface{}) (*swapTransaction, error) {
@@ -975,25 +1134,74 @@ func (sct *swapContractTransactor) newTransactionWithInput(amount *big.Int, cont
 	if err != nil {
 		return nil, err
 	}
-	opts.GasLimit, err = sct.calcGasLimit(opts.Context, opts.Value, opts.GasPrice, contractCall, input)
+	opts.GasLimit, err = sct.calcGasLimit(newContext(), opts.Value, opts.GasPrice, contractCall, input)
 	if err != nil {
 		return nil, err
 	}
 
-	// create the raw transaction
-	rawTx := types.NewTransaction(
-		opts.Nonce.Uint64(),
-		sct.contractAddr,
-		opts.Value,
-		opts.GasLimit,
-		opts.GasPrice,
-		input,
-	)
-
-	// sign the transaction and return it
-	signedTx, err := opts.Signer(types.HomesteadSigner{}, opts.From, rawTx)
-	if err != nil {
-		return nil, fmt.Errorf("failed to sign transaction: %v", err)
+	// sign using daemon or do it client-side if desired
+	var signedTx *types.Transaction
+	if opts.Signer == nil {
+		var toAddr *common.Address
+		if contractCall {
+			toAddr = &sct.contractAddr
+		}
+		// sign transaction using the daemon
+		var result struct {
+			Raw string            `json:"raw"`
+			Tx  types.Transaction `json:"tx"`
+		}
+		err = sct.client.rpcClient.CallContext(newContext(), &result, "eth_signTransaction", struct {
+			From     common.Address  `json:"from"`
+			To       *common.Address `json:"to"`
+			Gas      hexutil.Uint64  `json:"gas"`
+			GasPrice hexutil.Big     `json:"gasPrice"`
+			Value    hexutil.Big     `json:"value"`
+			Nonce    hexutil.Uint64  `json:"nonce"`
+			Data     hexutil.Bytes   `json:"data"`
+		}{
+			From:     opts.From,
+			To:       toAddr,
+			Gas:      hexutil.Uint64(opts.GasLimit),
+			GasPrice: hexutil.Big(*opts.GasPrice),
+			Value: func() hexutil.Big {
+				if amount == nil {
+					return hexutil.Big{}
+				}
+				return hexutil.Big(*amount)
+			}(),
+			Nonce: hexutil.Uint64(opts.Nonce.Uint64()),
+			Data:  hexutil.Bytes(input),
+		})
+		if err != nil {
+			return nil, fmt.Errorf("failed to sign transaction from daemon: %v", err)
+		}
+		signedTx = &result.Tx
+	} else {
+		var rawTx *types.Transaction
+		if contractCall {
+			rawTx = types.NewTransaction(
+				opts.Nonce.Uint64(),
+				sct.contractAddr,
+				opts.Value,
+				opts.GasLimit,
+				opts.GasPrice,
+				input,
+			)
+		} else {
+			rawTx = types.NewContractCreation(
+				opts.Nonce.Uint64(),
+				opts.Value,
+				opts.GasLimit,
+				opts.GasPrice,
+				input,
+			)
+		}
+		// sign ourselves
+		signedTx, err = opts.Signer(types.HomesteadSigner{}, opts.From, rawTx)
+		if err != nil {
+			return nil, fmt.Errorf("failed to sign transaction from client: %v", err)
+		}
 	}
 	return &swapTransaction{
 		Transaction: signedTx,

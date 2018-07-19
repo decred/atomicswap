@@ -32,6 +32,12 @@
   revision = "625ff285aa35926943df199ab15deba045716206"
 
 [[projects]]
+  name = "github.com/bgentry/speakeasy"
+  packages = ["."]
+  revision = "4aabc24848ce5fd31929f7d1e4ea74d3709c14cd"
+  version = "v0.1.0"
+
+[[projects]]
   branch = "master"
   name = "github.com/bitgoin/lyra2rev2"
   packages = ["sha3"]
@@ -582,6 +588,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "c5a64aedde3cf8fcfe7ef9244e2f1be049ac77ce90901b34af3520616cb0ed83"
+  inputs-digest = "69b21e03f99e857dd0d1f4978f569bbf1c3d515d359bf9e48144d3dd14e41619"
   solver-name = "gps-cdcl"
   solver-version = 1
