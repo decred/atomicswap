@@ -797,23 +797,34 @@ func (cmd *auditContractCmd) runCommand(sct swapContractTransactor) error {
 }
 
 func (cmd *deployContractCmd) runCommand(sct swapContractTransactor) error {
-	auth, err := sct.calcBaseOpts(nil)
+	tx, err := sct.deployTx()
 	if err != nil {
-		return fmt.Errorf("failed to create transact opts: %v", err)
-	}
-	addr, tx, _, err := contract.DeployContract(auth, sct.client.Client)
-	if err != nil {
-		return fmt.Errorf("failed to deploy contract: %v", err)
+		return fmt.Errorf("failed to create deploy TX: %v", err)
 	}
 
-	// print info
-	fmt.Printf("Contract Address: %x\n", addr)
-	fmt.Printf("Deployment transaction (%x):\n", tx.Hash())
+	deployTxCost := new(big.Int).Mul(tx.GasPrice(), new(big.Int).SetUint64(tx.Gas()))
+	fmt.Printf("Deploy fee: %s ETH\n\n", formatWeiAsEthString(deployTxCost))
+
+	fmt.Printf("Chain ID:         %s\n", chainConfig.ChainID.String())
+	fmt.Printf("Contract Address: %x\n", sct.contractAddr)
+
+	fmt.Printf("Deploy transaction (%x):\n", tx.Hash())
 	txBytes, err := rlp.EncodeToBytes(tx)
 	if err != nil {
-		return fmt.Errorf("failed to encode deployment TX: %v", err)
+		return fmt.Errorf("failed to encode deploy TX: %v", err)
 	}
 	fmt.Printf("%x\n\n", txBytes)
+
+	publish, err := promptPublishTx("deploy")
+	if err != nil || !publish {
+		return err
+	}
+
+	err = tx.Send()
+	if err != nil {
+		return err
+	}
+	fmt.Printf("Published deploy transaction (%x)\n", tx.Hash())
 	return nil
 }
 
@@ -936,6 +947,10 @@ func (sct *swapContractTransactor) refundTx(secretHash [sha256.Size]byte) (*swap
 	)
 }
 
+func (sct *swapContractTransactor) deployTx() (*swapTransaction, error) {
+	return sct.newTransactionWithInput(nil, false, common.FromHex(contract.ContractBin))
+}
+
 func (sct *swapContractTransactor) maxGasCost() (*big.Int, error) {
 	ctx := newContext()
 	gasPrice, err := sct.client.SuggestGasPrice(ctx)
@@ -946,18 +961,21 @@ func (sct *swapContractTransactor) maxGasCost() (*big.Int, error) {
 }
 
 func (sct *swapContractTransactor) newTransaction(amount *big.Int, name string, params ...interface{}) (*swapTransaction, error) {
-	// pack up the parameters and contractn ame
+	// pack up the parameters and contract name
 	input, err := sct.abi.Pack(name, params...)
 	if err != nil {
 		return nil, fmt.Errorf("failed to pack input")
 	}
+	return sct.newTransactionWithInput(amount, true, input)
+}
 
+func (sct *swapContractTransactor) newTransactionWithInput(amount *big.Int, contractCall bool, input []byte) (*swapTransaction, error) {
 	// define the TransactOpts for binding
 	opts, err := sct.calcBaseOpts(amount)
 	if err != nil {
 		return nil, err
 	}
-	opts.GasLimit, err = sct.calcGasLimit(opts.Context, opts.Value, opts.GasPrice, input)
+	opts.GasLimit, err = sct.calcGasLimit(opts.Context, opts.Value, opts.GasPrice, contractCall, input)
 	if err != nil {
 		return nil, err
 	}
@@ -1009,25 +1027,29 @@ func (sct *swapContractTransactor) calcBaseOpts(amount *big.Int) (*bind.Transact
 	}, nil
 }
 
-func (sct *swapContractTransactor) calcGasLimit(ctx context.Context, amount, gasPrice *big.Int, input []byte) (uint64, error) {
-	if code, err := sct.client.PendingCodeAt(ctx, sct.contractAddr); err != nil {
-		return 0, fmt.Errorf("failed to estimate gas needed: %v", err)
-	} else if len(code) == 0 {
-		return 0, fmt.Errorf("failed to estimate gas needed: %v", bind.ErrNoCode)
+func (sct *swapContractTransactor) calcGasLimit(ctx context.Context, amount, gasPrice *big.Int, contractCall bool, input []byte) (uint64, error) {
+	if contractCall {
+		if code, err := sct.client.PendingCodeAt(ctx, sct.contractAddr); err != nil {
+			return 0, fmt.Errorf("failed to estimate gas needed: %v", err)
+		} else if len(code) == 0 {
+			return 0, fmt.Errorf("failed to estimate gas needed: %v", bind.ErrNoCode)
+		}
 	}
 	// If the contract surely has code (or code is not needed), estimate the transaction
 	msg := ethereum.CallMsg{
 		From:  sct.fromAddr,
-		To:    &sct.contractAddr,
 		Value: amount,
 		Data:  input,
+	}
+	if contractCall {
+		msg.To = &sct.contractAddr
 	}
 	gasLimit, err := sct.client.EstimateGas(ctx, msg)
 	if err != nil {
 		return 0, fmt.Errorf("failed to estimate gas needed: %v", err)
 	}
-	if gasLimit > maxGasLimit {
-		return 0, fmt.Errorf("%d exceeds the hardcoded gas limit of %d", gasLimit, maxGasLimit)
+	if contractCall && gasLimit > maxGasLimit {
+		return 0, fmt.Errorf("%d exceeds the hardcoded code-call gas limit of %d", gasLimit, maxGasLimit)
 	}
 	return gasLimit, nil
 }
