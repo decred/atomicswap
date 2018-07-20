@@ -20,6 +20,10 @@ exists for the following coins and wallets:
 * Viacoin ([Viacoin Core](https://github.com/viacoin/viacoin))
 * Zcoin ([Zcoin Core](https://github.com/zcoinofficial/zcoin))
 
+External support exists for the following coins and wallets:
+
+* ThreeFold Token ([ThreeFold Chain](https://github.com/threefoldfoundation/tfchain))
+
 Pull requests implementing support for additional cryptocurrencies and wallets
 are encouraged.  See [GitHub project
 1](https://github.com/decred/atomicswap/projects/1) for the status of coins
