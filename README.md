@@ -19,6 +19,7 @@ exists for the following coins and wallets:
 * Vertcoin ([Vertcoin Core](https://github.com/vertcoin/vertcoin))
 * Viacoin ([Viacoin Core](https://github.com/viacoin/viacoin))
 * Zcoin ([Zcoin Core](https://github.com/zcoinofficial/zcoin))
+* Ethereum ([Go Ethereum](https://github.com/ethereum/go-ethereum))
 
 Pull requests implementing support for additional cryptocurrencies and wallets
 are encouraged.  See [GitHub project
