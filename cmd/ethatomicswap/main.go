@@ -21,6 +21,7 @@ import (
 	"time"
 
 	"github.com/bgentry/speakeasy"
+
 	ethereum "github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
@@ -741,8 +742,10 @@ func (cmd *auditContractCmd) runCommand(sct swapContractTransactor) error {
 
 	// get transaction by hash
 	contractHash := cmd.contractTx.Hash()
-	err = sct.client.rpcClient.CallContext(newContext(),
+	ctx := newContext()
+	err = sct.client.rpcClient.CallContext(ctx,
 		&rpcTransaction, "eth_getTransactionByHash", contractHash)
+	ctx.Cancel()
 	if err != nil {
 		return fmt.Errorf(
 			"failed to find transaction (%x): %v", contractHash, err)
@@ -752,7 +755,9 @@ func (cmd *auditContractCmd) runCommand(sct swapContractTransactor) error {
 	}
 
 	// get block in order to know the timestamp of the txn
-	block, err := sct.client.BlockByHash(newContext(), *rpcTransaction.BlockHash)
+	ctx = newContext()
+	block, err := sct.client.BlockByHash(ctx, *rpcTransaction.BlockHash)
+	ctx.Cancel()
 	if err != nil {
 		return fmt.Errorf(
 			"failed to find block (%x): %v", rpcTransaction.BlockHash, err)
@@ -821,7 +826,7 @@ func (cmd *validateDeployedContractCmd) runCommand(swapContractTransactor) error
 }
 
 func (cmd *validateDeployedContractCmd) runOfflineCommand() error {
-	if bytes.Compare(cmd.deployTx.Data(), contractBin) != 0 {
+	if !bytes.Equal(cmd.deployTx.Data(), contractBin) {
 		return errors.New("deployed contract is invalid (make sure to use the same Solidity contract source code and Compiler version (0.4.24))")
 	}
 	fmt.Println("Contract is valid")
@@ -838,7 +843,9 @@ func newSwapContractTransactor(c *ethClient, contractAddr common.Address) (swapC
 	switch account := *accountFlag; {
 	case account == "":
 		var accounts []common.Address
-		err := c.rpcClient.CallContext(newContext(), &accounts, "eth_accounts")
+		ctx := newContext()
+		err := c.rpcClient.CallContext(ctx, &accounts, "eth_accounts")
+		ctx.Cancel()
 		if err != nil {
 			return swapContractTransactor{}, fmt.Errorf("failed to list unlocked accounts: %v", err)
 		}
@@ -927,7 +934,6 @@ type (
 	swapTransaction struct {
 		*types.Transaction
 		client *ethClient
-		ctx    context.Context
 	}
 )
 
@@ -1040,8 +1046,8 @@ func (sct *swapContractTransactor) refundTx(secretHash [sha256.Size]byte) (*swap
 		return nil, errors.New("inactive atomic swap contract")
 	}
 	lockTime := time.Unix(bigIntPtrToUint64(sc.InitTimestamp)+bigIntPtrToUint64(sc.RefundTime), 0)
-	if dur := lockTime.Sub(time.Now()); dur >= 0 {
-		return nil, fmt.Errorf("contract is still locked for %v", dur+time.Second) // add 1 as to deal with the `0` second case
+	if dur := time.Until(lockTime).Truncate(time.Second); dur >= 0 {
+		return nil, fmt.Errorf("contract is still locked for %v", dur+time.Second)
 	}
 	// create refund tx
 	return sct.newTransaction(
@@ -1065,12 +1071,18 @@ func (sct *swapContractTransactor) deployTx() (*swapTransaction, error) {
 func (sct *swapContractTransactor) maxGasCost() (*big.Int, error) {
 	ctx := newContext()
 	gasPrice, err := sct.client.SuggestGasPrice(ctx)
+	ctx.Cancel()
 	if err != nil {
 		return nil, fmt.Errorf("failed to suggest gas price: %v", err)
 	}
 	return gasPrice.Mul(gasPrice, big.NewInt(maxGasLimit)), nil
 }
 
+// states have to be mapped 1-to-1 with Enum AtomicSwap.State,
+// as found in ./contract/src/contracts/AtomicSwap.sol
+//
+// This isn't part of the Ethereum-generated Go code found in the child "contract" pkg,
+// given that the ABI does not export Enums.
 const (
 	swapStateEmpty uint8 = iota
 	swapStateFilled
@@ -1078,15 +1090,25 @@ const (
 	swapStateRefunded
 )
 
+// kinds have to be mapped 1-to-1 with Enum AtomicSwap.Kind,
+// as found in ./contract/src/contracts/AtomicSwap.sol
+//
+// This isn't part of the Ethereum-generated Go code found in the child "contract" pkg,
+// given that the ABI does not export Enums.
 const (
 	swapKindInitiator uint8 = iota
 	swapKindParticipant
 )
 
 var (
+	// error reported when an atomic swap contract (identified by a secret hash),
+	// has the state Empty, indicating it doesn't exist yet.
 	errNotExists = errors.New("atomic swap contract does not exist")
 )
 
+// getSwapContract is a free contract call,
+// which allows us to retrieve an atomic swap contract from a deployed AtomicSwap smart contract,
+// using the secret hash used in that atomic swap contract as this contract's identifier.
 func (sct *swapContractTransactor) getSwapContract(secretHash [32]byte) (*struct {
 	InitTimestamp *big.Int
 	RefundTime    *big.Int
@@ -1105,13 +1127,15 @@ func (sct *swapContractTransactor) getSwapContract(secretHash [32]byte) (*struct
 			return nil, fmt.Errorf("failed to bind smart contract (at %x): %v", sct.contractAddr, err)
 		}
 	}
+	ctx := newContext()
 	sc, err := sct._contract.Swaps(&bind.CallOpts{
 		Pending: false,
 		From:    sct.fromAddr,
-		Context: newContext(),
+		Context: ctx,
 	}, secretHash)
+	ctx.Cancel()
 	if err != nil {
-		return nil, fmt.Errorf("failed to get swap contract from smart contract (at %x): %v", err)
+		return nil, fmt.Errorf("failed to get swap contract from smart contract (at %x): %v", sct.contractAddr, err)
 	}
 	if sc.State == swapStateEmpty {
 		return nil, errNotExists
@@ -1134,7 +1158,7 @@ func (sct *swapContractTransactor) newTransactionWithInput(amount *big.Int, cont
 	if err != nil {
 		return nil, err
 	}
-	opts.GasLimit, err = sct.calcGasLimit(newContext(), opts.Value, opts.GasPrice, contractCall, input)
+	opts.GasLimit, err = sct.calcGasLimit(opts.Value, opts.GasPrice, contractCall, input)
 	if err != nil {
 		return nil, err
 	}
@@ -1151,7 +1175,8 @@ func (sct *swapContractTransactor) newTransactionWithInput(amount *big.Int, cont
 			Raw string            `json:"raw"`
 			Tx  types.Transaction `json:"tx"`
 		}
-		err = sct.client.rpcClient.CallContext(newContext(), &result, "eth_signTransaction", struct {
+		ctx := newContext()
+		err = sct.client.rpcClient.CallContext(ctx, &result, "eth_signTransaction", struct {
 			From     common.Address  `json:"from"`
 			To       *common.Address `json:"to"`
 			Gas      hexutil.Uint64  `json:"gas"`
@@ -1173,6 +1198,7 @@ func (sct *swapContractTransactor) newTransactionWithInput(amount *big.Int, cont
 			Nonce: hexutil.Uint64(opts.Nonce.Uint64()),
 			Data:  hexutil.Bytes(input),
 		})
+		ctx.Cancel()
 		if err != nil {
 			return nil, fmt.Errorf("failed to sign transaction from daemon: %v", err)
 		}
@@ -1206,19 +1232,21 @@ func (sct *swapContractTransactor) newTransactionWithInput(amount *big.Int, cont
 	return &swapTransaction{
 		Transaction: signedTx,
 		client:      sct.client,
-		ctx:         opts.Context,
 	}, nil
 }
 
 func (sct *swapContractTransactor) calcBaseOpts(amount *big.Int) (*bind.TransactOpts, error) {
 	ctx := newContext()
 	nonce, err := sct.client.PendingNonceAt(ctx, sct.fromAddr)
+	ctx.Cancel()
 	if err != nil {
 		return nil, fmt.Errorf(
 			"failed to retrieve account (%x) nonce: %v",
 			sct.fromAddr, err)
 	}
+	ctx = newContext()
 	gasPrice, err := sct.client.SuggestGasPrice(ctx)
+	ctx.Cancel()
 	if err != nil {
 		return nil, fmt.Errorf("failed to suggest gas price: %v", err)
 	}
@@ -1231,13 +1259,15 @@ func (sct *swapContractTransactor) calcBaseOpts(amount *big.Int) (*bind.Transact
 		Signer:   sct.signer,
 		Value:    amount,
 		GasPrice: gasPrice,
-		Context:  ctx,
 	}, nil
 }
 
-func (sct *swapContractTransactor) calcGasLimit(ctx context.Context, amount, gasPrice *big.Int, contractCall bool, input []byte) (uint64, error) {
+func (sct *swapContractTransactor) calcGasLimit(amount, gasPrice *big.Int, contractCall bool, input []byte) (uint64, error) {
 	if contractCall {
-		if code, err := sct.client.PendingCodeAt(ctx, sct.contractAddr); err != nil {
+		ctx := newContext()
+		code, err := sct.client.PendingCodeAt(ctx, sct.contractAddr)
+		ctx.Cancel()
+		if err != nil {
 			return 0, fmt.Errorf("failed to estimate gas needed: %v", err)
 		} else if len(code) == 0 {
 			return 0, fmt.Errorf("failed to estimate gas needed: %v", bind.ErrNoCode)
@@ -1252,7 +1282,9 @@ func (sct *swapContractTransactor) calcGasLimit(ctx context.Context, amount, gas
 	if contractCall {
 		msg.To = &sct.contractAddr
 	}
+	ctx := newContext()
 	gasLimit, err := sct.client.EstimateGas(ctx, msg)
+	ctx.Cancel()
 	if err != nil {
 		return 0, fmt.Errorf("failed to estimate gas needed: %v", err)
 	}
@@ -1263,7 +1295,9 @@ func (sct *swapContractTransactor) calcGasLimit(ctx context.Context, amount, gas
 }
 
 func (st *swapTransaction) Send() error {
-	err := st.client.SendTransaction(st.ctx, st.Transaction)
+	ctx := newContext()
+	err := st.client.SendTransaction(ctx, st.Transaction)
+	ctx.Cancel()
 	if err != nil {
 		return fmt.Errorf("failed to send transaction: %v", err)
 	}
@@ -1286,15 +1320,40 @@ type ethClient struct {
 	rpcClient *rpc.Client
 }
 
-func newContext() context.Context {
+// newContext creates a context which HAS
+// to be manually cancelled, as to not leak any resources
+func newContext() *cancelableContext {
 	if *timeoutFlag == 0 {
-		return context.Background()
+		ctx, cancelFn := context.WithCancel(context.Background())
+		return &cancelableContext{
+			Context:  ctx,
+			cancelFn: cancelFn,
+		}
 	}
-	ctx, _ := context.WithTimeout(context.Background(), *timeoutFlag)
-	return ctx
+	ctx, cancelFn := context.WithTimeout(context.Background(), *timeoutFlag)
+	return &cancelableContext{
+		Context:  ctx,
+		cancelFn: cancelFn,
+	}
+}
+
+type cancelableContext struct {
+	context.Context
+	cancelFn context.CancelFunc
+}
+
+func (cc *cancelableContext) Cancel() {
+	cc.cancelFn()
 }
 
 var (
+	// decode the byte code of the smart contract used
+	// during the initialisation phase of this CLI tool,
+	// as to ensure the hex-encoded string is valid at all times.
+	//
+	// This prevents of having a hidden error,
+	// due to the fact that it is only ever used in
+	// our extra smart-contract-related commands.
 	contractBin = func() []byte {
 		b, err := hex.DecodeString(contract.ContractBin)
 		if err != nil {
