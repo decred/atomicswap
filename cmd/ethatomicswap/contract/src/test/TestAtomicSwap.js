@@ -1,6 +1,6 @@
-// Copyright (c) 2018 The Decred developers and Contributors
-// Use of this source code is governed by an ISC
-// license that can be found in the LICENSE file.
+// Copyright (c) 2018 BetterToken BVBA
+// Use of this source code is governed by an MIT
+// license that can be found at https://github.com/rivine/rivine/blob/master/LICENSE.
 
 const AtomicSwap = artifacts.require("AtomicSwap");
 
