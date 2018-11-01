@@ -22,8 +22,8 @@ import (
 	"time"
 
 	"github.com/decred/dcrd/chaincfg"
-	"github.com/decred/dcrd/chaincfg/chainec"
 	"github.com/decred/dcrd/chaincfg/chainhash"
+	"github.com/decred/dcrd/dcrec"
 	"github.com/decred/dcrd/dcrutil"
 	"github.com/decred/dcrd/txscript"
 	"github.com/decred/dcrd/wire"
@@ -37,15 +37,10 @@ import (
 
 const verify = true
 
-const verifyFlags = txscript.ScriptBip16 |
-	txscript.ScriptVerifyDERSignatures |
-	txscript.ScriptVerifyStrictEncoding |
-	txscript.ScriptVerifyMinimalData |
-	txscript.ScriptDiscourageUpgradableNops |
+const verifyFlags = txscript.ScriptDiscourageUpgradableNops |
 	txscript.ScriptVerifyCleanStack |
 	txscript.ScriptVerifyCheckLockTimeVerify |
 	txscript.ScriptVerifyCheckSequenceVerify |
-	txscript.ScriptVerifyLowS |
 	txscript.ScriptVerifySHA256
 
 const secretSize = 32
@@ -202,7 +197,7 @@ func run() (err error, showUsage bool) {
 	}
 
 	if *testnetFlag {
-		chainParams = &chaincfg.TestNet2Params
+		chainParams = &chaincfg.TestNet3Params
 	}
 
 	var cmd command
@@ -388,7 +383,7 @@ func walletPort(params *chaincfg.Params) string {
 	switch params {
 	case &chaincfg.MainNetParams:
 		return "9111"
-	case &chaincfg.TestNet2Params:
+	case &chaincfg.TestNet3Params:
 		return "19111"
 	default:
 		return ""
@@ -584,7 +579,7 @@ func buildRefund(ctx context.Context, c pb.WalletServiceClient, contract []byte,
 	}
 
 	refundAddr, err := dcrutil.NewAddressPubKeyHash(pushes.RefundHash160[:], chainParams,
-		chainec.ECTypeSecp256k1)
+		dcrec.STEcdsaSecp256k1)
 	if err != nil {
 		return nil, 0, err
 	}
@@ -599,7 +594,7 @@ func buildRefund(ctx context.Context, c pb.WalletServiceClient, contract []byte,
 		return nil, 0, fmt.Errorf("refund output value of %v is dust", dcrutil.Amount(refundTx.TxOut[0].Value))
 	}
 
-	txIn := wire.NewTxIn(&contractOutPoint, nil)
+	txIn := wire.NewTxIn(&contractOutPoint, 0, nil)
 	txIn.Sequence = 0
 	refundTx.AddTxIn(txIn)
 
@@ -755,7 +750,7 @@ func (cmd *redeemCmd) runCommand(ctx context.Context, c pb.WalletServiceClient) 
 		return errors.New("contract is not an atomic swap script recognized by this tool")
 	}
 	recipientAddr, err := dcrutil.NewAddressPubKeyHash(pushes.RecipientHash160[:],
-		chainParams, chainec.ECTypeSecp256k1)
+		chainParams, dcrec.STEcdsaSecp256k1)
 	if err != nil {
 		return err
 	}
@@ -798,7 +793,7 @@ func (cmd *redeemCmd) runCommand(ctx context.Context, c pb.WalletServiceClient) 
 
 	redeemTx := wire.NewMsgTx()
 	redeemTx.LockTime = uint32(pushes.LockTime)
-	redeemTx.AddTxIn(wire.NewTxIn(&contractOutPoint, nil))
+	redeemTx.AddTxIn(wire.NewTxIn(&contractOutPoint, 0, nil))
 	redeemTx.AddTxOut(wire.NewTxOut(0, outScript)) // amount set below
 	redeemSize := estimateRedeemSerializeSize(cmd.contract, redeemTx.TxOut)
 	fee := txrules.FeeForSerializeSize(feePerKb, redeemSize)
@@ -957,12 +952,12 @@ func (cmd *auditContractCmd) runOfflineCommand() error {
 		return err
 	}
 	recipientAddr, err := dcrutil.NewAddressPubKeyHash(pushes.RecipientHash160[:],
-		chainParams, chainec.ECTypeSecp256k1)
+		chainParams, dcrec.STEcdsaSecp256k1)
 	if err != nil {
 		return err
 	}
 	refundAddr, err := dcrutil.NewAddressPubKeyHash(pushes.RefundHash160[:],
-		chainParams, chainec.ECTypeSecp256k1)
+		chainParams, dcrec.STEcdsaSecp256k1)
 	if err != nil {
 		return err
 	}

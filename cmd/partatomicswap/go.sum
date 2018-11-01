@@ -1,0 +1,16 @@
+github.com/btcsuite/btclog v0.0.0-20170628155309-84c8d2346e9f h1:bAs4lUbRJpnnkd9VhRV3jjAVU7DJVjMaK+IsvSeZvFo=
+github.com/btcsuite/btclog v0.0.0-20170628155309-84c8d2346e9f/go.mod h1:TdznJufoqS23FtqVCzL0ZqgP5MqXbb4fg/WgDys70nA=
+github.com/btcsuite/go-socks v0.0.0-20170105172521-4720035b7bfd h1:R/opQEbFEy9JGkIguV40SvRY1uliPX8ifOvi6ICsFCw=
+github.com/btcsuite/go-socks v0.0.0-20170105172521-4720035b7bfd/go.mod h1:HHNXQzUsZCxOoE+CPiyCTO6x34Zs86zZUiwtpXoGdtg=
+github.com/btcsuite/websocket v0.0.0-20150119174127-31079b680792 h1:R8vQdOQdZ9Y3SkEwmHoWBmX1DNXhXZqlTpq6s4tyJGc=
+github.com/btcsuite/websocket v0.0.0-20150119174127-31079b680792/go.mod h1:ghJtEyQwv5/p4Mg4C0fgbePVuGr935/5ddU9Z3TmDRY=
+github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c=
+github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
+github.com/particl/partsuite_partd v0.0.0-20180219184348-ae651ccc8293 h1:Qr1gOjt0U6zTNeUZn9OnWfqdNX6W/PnYVLj0d4FDopY=
+github.com/particl/partsuite_partd v0.0.0-20180219184348-ae651ccc8293/go.mod h1:o3C0fsjfUfhzSK7fGGE/UrJMmKtj6oZ7NqVqbwH4RGw=
+github.com/particl/partsuite_partutil v0.0.0-20170924205752-117d65fa91c0 h1:W0DAjLwj6Cyma+rV0DrFnHH3E+an9fltGh+bXOMSK2M=
+github.com/particl/partsuite_partutil v0.0.0-20170924205752-117d65fa91c0/go.mod h1:RIWH3TJYkHtxecsQYxAMnSFwThf/rWzuwh6deIirRdg=
+github.com/particl/partsuite_partwallet v0.0.0-20170924205536-970e161f293f h1:q2WISI8XVWr5Lfr29NCVujCSGUIcDwswLddSkcfkB5g=
+github.com/particl/partsuite_partwallet v0.0.0-20170924205536-970e161f293f/go.mod h1:SmbMtfeatXDJPEsyfi1V+maAMwdo3GhjQvmpz1UzDH8=
+golang.org/x/crypto v0.0.0-20181030102418-4d3f4d9ffa16 h1:y6ce7gCWtnH+m3dCjzQ1PCuwl28DDIc3VNnvY29DlIA=
+golang.org/x/crypto v0.0.0-20181030102418-4d3f4d9ffa16/go.mod h1:6SG95UA2DQfeDnfUPMdvaQW0Q7yPrPDi9nlGo2tz2b4=

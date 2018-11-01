@@ -1,14 +1,9 @@
 language: go
 go:
-  - 1.9.x
-  - 1.10.x
+  - 1.11.x
 sudo: false
 install:
-  - go get -v github.com/golang/dep/cmd/dep
-  - dep ensure
-  - go install ./cmd/...
-  - go get -v github.com/alecthomas/gometalinter
-  - gometalinter --install
+  - go get -v github.com/golangci/golangci-lint/cmd/golangci-lint
+
 script:
-  - export PATH=$PATH:$HOME/gopath/bin
   - ./goclean.sh
