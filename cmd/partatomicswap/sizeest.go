@@ -38,7 +38,7 @@ const (
 	refundAtomicSwapSigScriptSize = 1 + 73 + 1 + 33 + 1
 )
 
-const WITNESS_SCALE_FACTOR = 2
+const witnessScaleFactor = 2
 
 func sumOutputSerializeSizes(outputs []*wire.TxOut) (serializeSize int) {
 	for _, txOut := range outputs {
@@ -48,7 +48,7 @@ func sumOutputSerializeSizes(outputs []*wire.TxOut) (serializeSize int) {
 }
 
 func getVirtualSizeInner(sizeNoWitness int, sizeTotal int) int {
-	return ((sizeNoWitness*(WITNESS_SCALE_FACTOR-1) + sizeTotal) + WITNESS_SCALE_FACTOR - 1) / WITNESS_SCALE_FACTOR
+	return ((sizeNoWitness*(witnessScaleFactor-1) + sizeTotal) + witnessScaleFactor - 1) / witnessScaleFactor
 }
 
 func getVirtualSize(tx *wire.MsgTx) int {

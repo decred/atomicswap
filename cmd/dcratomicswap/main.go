@@ -145,7 +145,7 @@ type auditContractCmd struct {
 }
 
 func main() {
-	err, showUsage := run()
+	showUsage, err := run()
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 	}
@@ -169,11 +169,11 @@ func checkCmdArgLength(args []string, required int) (nArgs int) {
 	return required
 }
 
-func run() (err error, showUsage bool) {
+func run() (showUsage bool, err error) {
 	flagset.Parse(os.Args[1:])
 	args := flagset.Args()
 	if len(args) == 0 {
-		return nil, true
+		return true, nil
 	}
 	cmdArgs := 0
 	switch args[0] {
@@ -190,15 +190,15 @@ func run() (err error, showUsage bool) {
 	case "auditcontract":
 		cmdArgs = 2
 	default:
-		return fmt.Errorf("unknown command %v", args[0]), true
+		return true, fmt.Errorf("unknown command %v", args[0])
 	}
 	nArgs := checkCmdArgLength(args[1:], cmdArgs)
 	flagset.Parse(args[1+nArgs:])
 	if nArgs < cmdArgs {
-		return fmt.Errorf("%s: too few arguments", args[0]), true
+		return true, fmt.Errorf("%s: too few arguments", args[0])
 	}
 	if flagset.NArg() != 0 {
-		return fmt.Errorf("unexpected argument: %s", flagset.Arg(0)), true
+		return true, fmt.Errorf("unexpected argument: %s", flagset.Arg(0))
 	}
 
 	if *testnetFlag {
@@ -210,24 +210,24 @@ func run() (err error, showUsage bool) {
 	case "initiate":
 		cp2Addr, err := dcrutil.DecodeAddress(args[1])
 		if err != nil {
-			return fmt.Errorf("failed to decode participant address: %v", err), true
+			return true, fmt.Errorf("failed to decode participant address: %v", err)
 		}
 		if !cp2Addr.IsForNet(chainParams) {
-			return fmt.Errorf("participant address is not "+
-				"intended for use on %v", chainParams.Name), true
+			return true, fmt.Errorf("participant address is not "+
+				"intended for use on %v", chainParams.Name)
 		}
 		_, ok := cp2Addr.(*dcrutil.AddressPubKeyHash)
 		if !ok {
-			return errors.New("participant address is not P2PKH"), true
+			return true, errors.New("participant address is not P2PKH")
 		}
 
 		amountF64, err := strconv.ParseFloat(args[2], 64)
 		if err != nil {
-			return fmt.Errorf("failed to decode amount: %v", err), true
+			return true, fmt.Errorf("failed to decode amount: %v", err)
 		}
 		amount, err := dcrutil.NewAmount(amountF64)
 		if err != nil {
-			return err, true
+			return true, err
 		}
 
 		cmd = &initiateCmd{cp2Addr: cp2Addr, amount: amount}
@@ -235,32 +235,32 @@ func run() (err error, showUsage bool) {
 	case "participate":
 		cp1Addr, err := dcrutil.DecodeAddress(args[1])
 		if err != nil {
-			return fmt.Errorf("failed to decode initiator address: %v", err), true
+			return true, fmt.Errorf("failed to decode initiator address: %v", err)
 		}
 		if !cp1Addr.IsForNet(chainParams) {
-			return fmt.Errorf("initiator address is not "+
-				"intended for use on %v", chainParams.Name), true
+			return true, fmt.Errorf("initiator address is not "+
+				"intended for use on %v", chainParams.Name)
 		}
 		_, ok := cp1Addr.(*dcrutil.AddressPubKeyHash)
 		if !ok {
-			return errors.New("initiator address is not P2PKH"), true
+			return true, errors.New("initiator address is not P2PKH")
 		}
 
 		amountF64, err := strconv.ParseFloat(args[2], 64)
 		if err != nil {
-			return fmt.Errorf("failed to decode amount: %v", err), true
+			return true, fmt.Errorf("failed to decode amount: %v", err)
 		}
 		amount, err := dcrutil.NewAmount(amountF64)
 		if err != nil {
-			return err, true
+			return true, err
 		}
 
 		secretHash, err := hex.DecodeString(args[3])
 		if err != nil {
-			return errors.New("secret hash must be hex encoded"), true
+			return true, errors.New("secret hash must be hex encoded")
 		}
 		if len(secretHash) != sha256.Size {
-			return errors.New("secret hash has wrong size"), true
+			return true, errors.New("secret hash has wrong size")
 		}
 
 		cmd = &participateCmd{cp1Addr: cp1Addr, amount: amount, secretHash: secretHash}
@@ -268,22 +268,22 @@ func run() (err error, showUsage bool) {
 	case "redeem":
 		contract, err := hex.DecodeString(args[1])
 		if err != nil {
-			return fmt.Errorf("failed to decode contract: %v", err), true
+			return true, fmt.Errorf("failed to decode contract: %v", err)
 		}
 
 		contractTxBytes, err := hex.DecodeString(args[2])
 		if err != nil {
-			return fmt.Errorf("failed to decode contract transaction: %v", err), true
+			return true, fmt.Errorf("failed to decode contract transaction: %v", err)
 		}
 		var contractTx wire.MsgTx
 		err = contractTx.Deserialize(bytes.NewReader(contractTxBytes))
 		if err != nil {
-			return fmt.Errorf("failed to decode contract transaction: %v", err), true
+			return true, fmt.Errorf("failed to decode contract transaction: %v", err)
 		}
 
 		secret, err := hex.DecodeString(args[3])
 		if err != nil {
-			return fmt.Errorf("failed to decode secret: %v", err), true
+			return true, fmt.Errorf("failed to decode secret: %v", err)
 		}
 
 		cmd = &redeemCmd{contract: contract, contractTx: &contractTx, secret: secret}
@@ -291,17 +291,17 @@ func run() (err error, showUsage bool) {
 	case "refund":
 		contract, err := hex.DecodeString(args[1])
 		if err != nil {
-			return fmt.Errorf("failed to decode contract: %v", err), true
+			return true, fmt.Errorf("failed to decode contract: %v", err)
 		}
 
 		contractTxBytes, err := hex.DecodeString(args[2])
 		if err != nil {
-			return fmt.Errorf("failed to decode contract transaction: %v", err), true
+			return true, fmt.Errorf("failed to decode contract transaction: %v", err)
 		}
 		var contractTx wire.MsgTx
 		err = contractTx.Deserialize(bytes.NewReader(contractTxBytes))
 		if err != nil {
-			return fmt.Errorf("failed to decode contract transaction: %v", err), true
+			return true, fmt.Errorf("failed to decode contract transaction: %v", err)
 		}
 
 		cmd = &refundCmd{contract: contract, contractTx: &contractTx}
@@ -309,20 +309,20 @@ func run() (err error, showUsage bool) {
 	case "extractsecret":
 		redemptionTxBytes, err := hex.DecodeString(args[1])
 		if err != nil {
-			return fmt.Errorf("failed to decode redemption transaction: %v", err), true
+			return true, fmt.Errorf("failed to decode redemption transaction: %v", err)
 		}
 		var redemptionTx wire.MsgTx
 		err = redemptionTx.Deserialize(bytes.NewReader(redemptionTxBytes))
 		if err != nil {
-			return fmt.Errorf("failed to decode redemption transaction: %v", err), true
+			return true, fmt.Errorf("failed to decode redemption transaction: %v", err)
 		}
 
 		secretHash, err := hex.DecodeString(args[2])
 		if err != nil {
-			return errors.New("secret hash must be hex encoded"), true
+			return true, errors.New("secret hash must be hex encoded")
 		}
 		if len(secretHash) != sha256.Size {
-			return errors.New("secret hash has wrong size"), true
+			return true, errors.New("secret hash has wrong size")
 		}
 
 		cmd = &extractSecretCmd{redemptionTx: &redemptionTx, secretHash: secretHash}
@@ -330,17 +330,17 @@ func run() (err error, showUsage bool) {
 	case "auditcontract":
 		contract, err := hex.DecodeString(args[1])
 		if err != nil {
-			return fmt.Errorf("failed to decode contract: %v", err), true
+			return true, fmt.Errorf("failed to decode contract: %v", err)
 		}
 
 		contractTxBytes, err := hex.DecodeString(args[2])
 		if err != nil {
-			return fmt.Errorf("failed to decode contract transaction: %v", err), true
+			return true, fmt.Errorf("failed to decode contract transaction: %v", err)
 		}
 		var contractTx wire.MsgTx
 		err = contractTx.Deserialize(bytes.NewReader(contractTxBytes))
 		if err != nil {
-			return fmt.Errorf("failed to decode contract transaction: %v", err), true
+			return true, fmt.Errorf("failed to decode contract transaction: %v", err)
 		}
 
 		cmd = &auditContractCmd{contract: contract, contractTx: &contractTx}
@@ -348,27 +348,27 @@ func run() (err error, showUsage bool) {
 
 	// Offline commands don't need to talk to the wallet.
 	if cmd, ok := cmd.(offlineCommand); ok {
-		return cmd.runOfflineCommand(), false
+		return false, cmd.runOfflineCommand()
 	}
 
 	connect, err := normalizeAddress(*connectFlag, walletPort(chainParams))
 	if err != nil {
-		return fmt.Errorf("wallet server address: %v", err), true
+		return true, fmt.Errorf("wallet server address: %v", err)
 	}
 
 	creds, err := credentials.NewClientTLSFromFile(*certFlag, "")
 	if err != nil {
-		return fmt.Errorf("open certificate: %v", err), false
+		return false, fmt.Errorf("open certificate: %v", err)
 	}
 	conn, err := grpc.Dial(connect, grpc.WithTransportCredentials(creds))
 	if err != nil {
-		return fmt.Errorf("grpc dial: %v", err), false
+		return false, fmt.Errorf("grpc dial: %v", err)
 	}
 	defer conn.Close()
 	client := pb.NewWalletServiceClient(conn)
 
 	err = cmd.runCommand(context.Background(), client)
-	return err, false
+	return false, err
 }
 
 func normalizeAddress(addr string, defaultPort string) (hostport string, err error) {

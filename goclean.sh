@@ -7,6 +7,7 @@
 # 5. ineffassign   (https://github.com/gordonklaus/ineffassign)
 # 6. race detector (http://blog.golang.org/race-detector)
 # 7. test coverage (http://blog.golang.org/cover)
+# 8. golint        (https://github.com/golang/lint)
 
 # gometaling (github.com/alecthomas/gometalinter) is used to run each each
 # static checker.
@@ -27,4 +28,5 @@ test -z "$(gometalinter --vendor --disable-all \
 --enable=gosimple \
 --enable=unconvert \
 --enable=ineffassign \
+--enable=golint \
 --deadline=10m ./... 2>&1 | tee /dev/stderr)"
