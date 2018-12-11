@@ -6,8 +6,8 @@
 package main
 
 import (
-	"github.com/ltcsuite/ltcd/txscript"
-	"github.com/ltcsuite/ltcd/wire"
+	"github.com/qtumatomicswap/qtumd/txscript"
+	"github.com/qtumatomicswap/qtumd/wire"
 )
 
 // Worst case script and input/output size estimates.
