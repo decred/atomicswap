@@ -2,37 +2,82 @@
 
 
 [[projects]]
+  digest = "1:60c72dce811a50b6f2bd52dbcf9f59687bcd68da8566d87001fbbe20ccbddce7"
+  name = "github.com/Actinium-project/acmd"
+  packages = [
+    "btcec",
+    "btcjson",
+    "chaincfg",
+    "chaincfg/chainhash",
+    "rpcclient",
+    "txscript",
+    "wire",
+  ]
+  pruneopts = ""
+  revision = "d8ff696e25fbce3b86eb6a31b836b1289bca1f68"
+  version = "v0.0.0"
+
+[[projects]]
+  digest = "1:a8f5f7e313e13c7ac4efe13e903215ffd770a83ea1b946ab221d3356c4d5048f"
+  name = "github.com/Actinium-project/acmutil"
+  packages = [
+    ".",
+    "base58",
+    "bech32",
+  ]
+  pruneopts = ""
+  revision = "4ecf9d7ac49e92d82703ff93f20f1fb5e40fcc81"
+  version = "v0.0.2"
+
+[[projects]]
+  digest = "1:efe8951b3067ece1fc1add42d5a6be94be1189ed45462a60b479ea8216108440"
+  name = "github.com/Actinium-project/acmwallet"
+  packages = ["wallet/txrules"]
+  pruneopts = ""
+  revision = "fbc73cfd6e4d985d0a1afe512be911f3169e3e92"
+  version = "v0.0.3"
+
+[[projects]]
   branch = "master"
+  digest = "1:f5345a258aa54b9a26dadf43c3ab6624e4aa3f72bf1fa6174b03d88f964329f3"
   name = "github.com/DesWurstes/btcd"
   packages = ["txscript"]
+  pruneopts = ""
   revision = "04fe8cbcd5f0ced5eaaa5bf88aee7f123750ac55"
 
 [[projects]]
   branch = "master"
+  digest = "1:3d8ae1e5230e488d44b7587942ec2dd64ba96feaf9d340ea79ba6edd099cd0ac"
   name = "github.com/aead/skein"
   packages = [
     ".",
-    "threefish"
+    "threefish",
   ]
+  pruneopts = ""
   revision = "9365ae6e95d294dc113a0b308852f97c916db233"
 
 [[projects]]
   branch = "master"
+  digest = "1:7c95e6ada3cb4c4034a75f88a137400dfe7cbd5823c66b2ec4b014018b537ff7"
   name = "github.com/agl/ed25519"
   packages = [
     ".",
-    "edwards25519"
+    "edwards25519",
   ]
+  pruneopts = ""
   revision = "5312a61534124124185d41f09206b9fef1d88403"
 
 [[projects]]
   branch = "master"
+  digest = "1:677aeb322c9eaa9be71c7eb24eec62a6d96a41fe0b760d487aafc37e778d0ac4"
   name = "github.com/bitgoin/lyra2rev2"
   packages = ["sha3"]
+  pruneopts = ""
   revision = "bae9ad2043bb55facb14c4918e909f88a7d3ed84"
 
 [[projects]]
   branch = "master"
+  digest = "1:53af1aee2d9d8544de49a42d39c6da2ab656a03639781169d697419d42dbdbd5"
   name = "github.com/btcsuite/btcd"
   packages = [
     "btcec",
@@ -41,69 +86,89 @@
     "chaincfg/chainhash",
     "rpcclient",
     "txscript",
-    "wire"
+    "wire",
   ]
+  pruneopts = ""
   revision = "2be2f12b358dc57d70b8f501b00be450192efbc3"
 
 [[projects]]
   branch = "master"
+  digest = "1:30d4a548e09bca4a0c77317c58e7407e2a65c15325e944f9c08a7b7992f8a59e"
   name = "github.com/btcsuite/btclog"
   packages = ["."]
+  pruneopts = ""
   revision = "84c8d2346e9fc8c7b947e243b9c24e6df9fd206a"
 
 [[projects]]
   branch = "master"
+  digest = "1:827862daac23c3e946d7f0800957967e88e5d4b4b8437a303291237db3f565f3"
   name = "github.com/btcsuite/btcutil"
   packages = [
     ".",
     "base58",
-    "bech32"
+    "bech32",
   ]
+  pruneopts = ""
   revision = "501929d3d046174c3d39f0ea54ece471aa17238c"
 
 [[projects]]
   branch = "master"
+  digest = "1:a798f41b59d010a3a3ca87cc87c172d71b9dcd4fb103ab3c9c1e92b1e9b37500"
   name = "github.com/btcsuite/btcwallet"
   packages = ["wallet/txrules"]
+  pruneopts = ""
   revision = "8e723ea45456fc3e6208a399c849aca54a0d959f"
 
 [[projects]]
   branch = "master"
+  digest = "1:422f38d57f1bc0fdc34f26d0f1026869a3710400b09b5478c9288efa13573cfa"
   name = "github.com/btcsuite/go-socks"
   packages = ["socks"]
+  pruneopts = ""
   revision = "4720035b7bfd2a9bb130b1c184f8bbe41b6f0d0f"
 
 [[projects]]
   branch = "master"
+  digest = "1:3fea60816aaf99ce9029ce6b700958b0b043c76bc035ffe753f53c82c0a5217e"
   name = "github.com/btcsuite/golangcrypto"
   packages = ["ripemd160"]
+  pruneopts = ""
   revision = "53f62d9b43e87a6c56975cf862af7edf33a8d0df"
 
 [[projects]]
   branch = "master"
+  digest = "1:dfc248d5e6e1582fdec83796d3d1d451aa6cae773c4e4ba1dac2838caef6d381"
   name = "github.com/btcsuite/websocket"
   packages = ["."]
+  pruneopts = ""
   revision = "31079b6807923eb23992c421b114992b95131b55"
 
 [[projects]]
+  digest = "1:589beaa206ef022cf4ea8bce0d5a60603903757224c1d1e1d006cd7c2952484c"
   name = "github.com/cpacia/bchutil"
   packages = ["."]
+  pruneopts = ""
   revision = "223045ec4d9ef2fcc7c6ed62f9a8ed80ac9bdf58"
 
 [[projects]]
   branch = "master"
+  digest = "1:73e8c7e9fcc5e303a712480e453232447ac49bc57d240de5731f789eb309658f"
   name = "github.com/dchest/blake256"
   packages = ["."]
+  pruneopts = ""
   revision = "dee3fe6eb0e98dc774a94fc231f85baf7c29d360"
 
 [[projects]]
   branch = "master"
+  digest = "1:d3cebd0e9124daf4cf06f9cd6c00c7ce809d6d548ac21cb7ce788fd20541bd24"
   name = "github.com/decred/base58"
   packages = ["."]
+  pruneopts = ""
   revision = "229e657bc9be5d592855a910428907f851950ed5"
 
 [[projects]]
   branch = "master"
+  digest = "1:ba3ae2757540f9abaa374c027be52d682b3ea9680b1dde15dab1654ea3adff22"
   name = "github.com/decred/dcrd"
   packages = [
     "blockchain",
@@ -122,34 +187,40 @@
     "dcrec/secp256k1/schnorr",
     "dcrutil",
     "txscript",
-    "wire"
+    "wire",
   ]
+  pruneopts = ""
   revision = "60c7bc0e10b438ed9e52af039988a8c8479475fb"
 
 [[projects]]
   branch = "master"
+  digest = "1:7ee0865c598e0fd201dd006937eec765962c1f6faac9ca8a2df904dc9699692d"
   name = "github.com/decred/dcrwallet"
   packages = [
     "internal/helpers",
     "rpc/walletrpc",
-    "wallet/txrules"
+    "wallet/txrules",
   ]
+  pruneopts = ""
   revision = "1dc40f82683013a2111dd6bcfbd22d3dd219bc34"
 
 [[projects]]
   branch = "master"
+  digest = "1:f4aff6d33e1a2c27884e53c10a050ffb3c34fc74f161b2533b314abff4e1fc9f"
   name = "github.com/golang/protobuf"
   packages = [
     "proto",
     "ptypes",
     "ptypes/any",
     "ptypes/duration",
-    "ptypes/timestamp"
+    "ptypes/timestamp",
   ]
+  pruneopts = ""
   revision = "bbd03ef6da3a115852eaf24c8a1c46aeb39aa175"
 
 [[projects]]
   branch = "ltcatomicswap"
+  digest = "1:834374e64a6bc6189e2d78867924bbaa84c5ab718378614eb35c45d49c2f081c"
   name = "github.com/ltcsuite/ltcd"
   packages = [
     "btcec",
@@ -158,31 +229,37 @@
     "chaincfg/chainhash",
     "rpcclient",
     "txscript",
-    "wire"
+    "wire",
   ]
+  pruneopts = ""
   revision = "941d1c922dfd3d5bedd889dcbcf818db37aab0e2"
   source = "github.com/jrick/btcd"
 
 [[projects]]
   branch = "ltcamounts"
+  digest = "1:fcd1af21ec8695989be19a0203c68ae8f07fdcd35eae617bf98670ed63b62244"
   name = "github.com/ltcsuite/ltcutil"
   packages = [
     ".",
     "base58",
-    "bech32"
+    "bech32",
   ]
+  pruneopts = ""
   revision = "8e0fd08dd902ef58f5177e041916dd795075871d"
   source = "github.com/jrick/btcutil"
 
 [[projects]]
   branch = "ltcdeps"
+  digest = "1:61a48aeb137ec4bf0ad90d6f226037ca754fb7d143fb94115f50092f521ee3c7"
   name = "github.com/ltcsuite/ltcwallet"
   packages = ["wallet/txrules"]
+  pruneopts = ""
   revision = "d2214fcebbf4ae65a0b5a06f9a3cfee02794c565"
   source = "github.com/jrick/btcwallet"
 
 [[projects]]
   branch = "master"
+  digest = "1:665357686eb95e435bd665c068b2e3b3ce210fde1eb3d2468d0c3d46e7fef0d9"
   name = "github.com/particl/partsuite_partd"
   packages = [
     "btcec",
@@ -191,28 +268,34 @@
     "chaincfg/chainhash",
     "rpcclient",
     "txscript",
-    "wire"
+    "wire",
   ]
+  pruneopts = ""
   revision = "ae651ccc82938a86c4ea059fc56c305c1e074240"
 
 [[projects]]
   branch = "master"
+  digest = "1:8de167bb885f8ea7a7b64cf011ab8a40787442bd6745e961dfd01d87bc0be719"
   name = "github.com/particl/partsuite_partutil"
   packages = [
     ".",
     "base58",
-    "bech32"
+    "bech32",
   ]
+  pruneopts = ""
   revision = "117d65fa91c030e875ea5698d99b66258c5684d4"
 
 [[projects]]
   branch = "master"
+  digest = "1:8a44c1a9407bb2153c8c98254f72f74e44511ff1325f6cbf993b375652ad5d31"
   name = "github.com/particl/partsuite_partwallet"
   packages = ["wallet/txrules"]
+  pruneopts = ""
   revision = "970e161f293ff12ebbadae51db1f9d47f7414967"
 
 [[projects]]
   branch = "master"
+  digest = "1:4051566194f5110cf33c2765437faaa509089ba39e234e6a2f382a332d2a11c9"
   name = "github.com/polissuite/gopolis"
   packages = [
     "btcec",
@@ -221,34 +304,42 @@
     "chaincfg/chainhash",
     "rpcclient",
     "txscript",
-    "wire"
+    "wire",
   ]
+  pruneopts = ""
   revision = "f2f170540007e291d6c263edf66e8694feb9528f"
 
 [[projects]]
   branch = "master"
+  digest = "1:24ec6d53b6d442053f384a7ef54d3f49a1c9280637971a245d7fa3800a214ff6"
   name = "github.com/polissuite/gopolisutil"
   packages = [
     ".",
     "base58",
-    "bech32"
+    "bech32",
   ]
+  pruneopts = ""
   revision = "9a399fc0eeb0c35c6666f78e4d3a6d17e186c51f"
 
 [[projects]]
   branch = "master"
+  digest = "1:95b00df69aa2d4b4326580eac8b522c16f177c0603ce4a39f06c0afe81904ca4"
   name = "github.com/polissuite/gopoliswallet"
   packages = ["wallet/txrules"]
+  pruneopts = ""
   revision = "c5f2ea420bc49a93b1c9cb3c0a57a0c31dc639df"
 
 [[projects]]
   branch = "master"
+  digest = "1:60503675e7116476b24373163619bdd579a15ca70ef21f763e5123bb1e089c5a"
   name = "github.com/polissuite/gox11hash"
   packages = ["."]
+  pruneopts = ""
   revision = "66b5c7eba786ac6ce9ab51a24e24bb2d319b488c"
 
 [[projects]]
   branch = "master"
+  digest = "1:5dfc9762af6a6fca1d057c16becde4d3016373341dc1e7964b04c8f083ca2803"
   name = "github.com/vertcoin/vtcd"
   packages = [
     "btcec",
@@ -257,28 +348,34 @@
     "chaincfg/chainhash",
     "rpcclient",
     "txscript",
-    "wire"
+    "wire",
   ]
+  pruneopts = ""
   revision = "e703c22063ac06bc1a776d60c9f5b60b6bed17c8"
 
 [[projects]]
   branch = "master"
+  digest = "1:3b896e17f165cad9e8f1a1b1dddfce2bdfbbf3f008bcd68a17b9038c2df7df66"
   name = "github.com/vertcoin/vtcutil"
   packages = [
     ".",
     "base58",
-    "bech32"
+    "bech32",
   ]
+  pruneopts = ""
   revision = "264de6df16ae9bcc556487a3ecd06a132224e6ba"
 
 [[projects]]
   branch = "master"
+  digest = "1:61b81c734f53e8abff86ea2ca0da674a4c87f172d01c3b0c69fa5c9f72e0493c"
   name = "github.com/vertcoin/vtcwallet"
   packages = ["wallet/txrules"]
+  pruneopts = ""
   revision = "b52e3e2c5f5292992b702d991d0b187223873353"
 
 [[projects]]
   branch = "master"
+  digest = "1:7e442a5c2509371cf5c97faa189bfbe7c4bd97eebab8b2301d0a5681d3799e33"
   name = "github.com/viacoin/viad"
   packages = [
     "btcec",
@@ -287,34 +384,42 @@
     "chaincfg/chainhash",
     "rpcclient",
     "txscript",
-    "wire"
+    "wire",
   ]
+  pruneopts = ""
   revision = "506298a163934cfebda00bab6e372e73926b4e5b"
 
 [[projects]]
   branch = "master"
+  digest = "1:977d55bb50731befb26d4c51e0a6385235689e603b3602e99f9ad63cce3d4d5f"
   name = "github.com/viacoin/viautil"
   packages = [
     ".",
     "base58",
-    "bech32"
+    "bech32",
   ]
+  pruneopts = ""
   revision = "ed9ec48290bc085ae179946a14675bf2249fc718"
 
 [[projects]]
   branch = "master"
+  digest = "1:e3b61842564fa147fb94af3d3e17f4a1841a0d3f746cd9ce1f0f93c63b6dc799"
   name = "github.com/viacoin/viawallet"
   packages = ["wallet/txrules"]
+  pruneopts = ""
   revision = "a775b77c2dc41cc00d3156bc7b57e2ac9776a232"
 
 [[projects]]
   branch = "master"
+  digest = "1:677aeb322c9eaa9be71c7eb24eec62a6d96a41fe0b760d487aafc37e778d0ac4"
   name = "github.com/wakiyamap/lyra2rev2"
   packages = ["."]
+  pruneopts = ""
   revision = "bae9ad2043bb55facb14c4918e909f88a7d3ed84"
 
 [[projects]]
   branch = "master"
+  digest = "1:66f4c58e976a3db53ebbf63c23606ad9c999f94ef7543a60ab0a047cd6cf70fe"
   name = "github.com/wakiyamap/monad"
   packages = [
     "btcec",
@@ -323,28 +428,34 @@
     "chaincfg/chainhash",
     "rpcclient",
     "txscript",
-    "wire"
+    "wire",
   ]
+  pruneopts = ""
   revision = "8139a2a986a0a52dc149e53ec3167a1ce155d3c0"
 
 [[projects]]
   branch = "master"
+  digest = "1:ccd012ca925830afc869e3fc2784b7f4a8b031b1e00c74f956fe86e7cd0362b3"
   name = "github.com/wakiyamap/monautil"
   packages = [
     ".",
     "base58",
-    "bech32"
+    "bech32",
   ]
+  pruneopts = ""
   revision = "f5bfcf53b9ae24b8146086c9c11790a5f0616d9d"
 
 [[projects]]
   branch = "master"
+  digest = "1:987152e50ecb54ea2e0c0b6d04e547dac798a3be071325e2987fcdc372132390"
   name = "github.com/wakiyamap/monawallet"
   packages = ["wallet/txrules"]
+  pruneopts = ""
   revision = "b4defd9b37d7e1c6d1e0a9ff278700dfc8050d9d"
 
 [[projects]]
   branch = "master"
+  digest = "1:581f36dbb683f97812c702868d611b6722acbd814257af08ec8bd1b378bbd64a"
   name = "github.com/zcoinofficial/xzcd"
   packages = [
     "btcec",
@@ -353,39 +464,47 @@
     "chaincfg/chainhash",
     "rpcclient",
     "txscript",
-    "wire"
+    "wire",
   ]
+  pruneopts = ""
   revision = "ae307d1ae9070c5434a6a203992db0ad35712e96"
 
 [[projects]]
   branch = "master"
+  digest = "1:6262ee4d8411d17795658b00ffe4349037cc6ae2e3fcc1e68ce856208373b056"
   name = "github.com/zcoinofficial/xzcutil"
   packages = [
     ".",
     "base58",
-    "bech32"
+    "bech32",
   ]
+  pruneopts = ""
   revision = "ca7c84e1d45c50576b352b6dd22f0547b0b56c30"
 
 [[projects]]
   branch = "master"
+  digest = "1:d7afdaf1fe40bf43b5c9dc81c51e6360f665bf3dafeda6aa214aa2e34aaf6263"
   name = "github.com/zcoinofficial/xzcwallet"
   packages = ["wallet/txrules"]
+  pruneopts = ""
   revision = "fe84e6e188b8a4d350109646c084d0fb8c147fae"
 
 [[projects]]
   branch = "master"
+  digest = "1:79b763a59bc081a752605854f75ac04d4b8fba22bab9bbb11689efd2de255864"
   name = "golang.org/x/crypto"
   packages = [
     "pbkdf2",
     "ripemd160",
     "scrypt",
-    "ssh/terminal"
+    "ssh/terminal",
   ]
+  pruneopts = ""
   revision = "91a49db82a88618983a78a06c1cbd4e00ab749ab"
 
 [[projects]]
   branch = "master"
+  digest = "1:b4ba046df563f56fe42b6270b20039107a37e1ab47c97aa47a16f848aa5b6d9a"
   name = "golang.org/x/net"
   packages = [
     "context",
@@ -394,20 +513,24 @@
     "idna",
     "internal/timeseries",
     "lex/httplex",
-    "trace"
+    "trace",
   ]
+  pruneopts = ""
   revision = "cbe0f9307d0156177f9dd5dc85da1a31abc5f2fb"
 
 [[projects]]
   branch = "master"
+  digest = "1:2bd48c7cfcd6552db9102db13b6ccedfee87b7acadbe6f6c927f230eddba8505"
   name = "golang.org/x/sys"
   packages = [
     "unix",
-    "windows"
+    "windows",
   ]
+  pruneopts = ""
   revision = "f6cff0780e542efa0c8e864dc8fa522808f6a598"
 
 [[projects]]
+  digest = "1:5acd3512b047305d49e8763eef7ba423901e85d5dd2fd1e71778a0ea8de10bd4"
   name = "golang.org/x/text"
   packages = [
     "collate",
@@ -423,18 +546,22 @@
     "unicode/bidi",
     "unicode/cldr",
     "unicode/norm",
-    "unicode/rangetable"
+    "unicode/rangetable",
   ]
+  pruneopts = ""
   revision = "f21a4dfb5e38f5895301dc265a8def02365cc3d0"
   version = "v0.3.0"
 
 [[projects]]
   branch = "master"
+  digest = "1:56b2f1a9cab9f98f28d976231bf76103f54826002eb8b1d4b7d29c1136efbb6b"
   name = "google.golang.org/genproto"
   packages = ["googleapis/rpc/status"]
+  pruneopts = ""
   revision = "2d9486acae19cf9bd0c093d7dc236a323726a9e4"
 
 [[projects]]
+  digest = "1:d2dc833c73202298c92b63a7e180e2b007b5a3c3c763e3b9fe1da249b5c7f5b9"
   name = "google.golang.org/grpc"
   packages = [
     ".",
@@ -459,14 +586,93 @@
     "stats",
     "status",
     "tap",
-    "transport"
+    "transport",
   ]
+  pruneopts = ""
   revision = "8e4536a86ab602859c20df5ebfd0bd4228d08655"
   version = "v1.10.0"
 
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "b403e3758f7b9d3985451de9323dbf395cc4ab3e22b068e87d291fec5d05ae02"
+  input-imports = [
+    "github.com/Actinium-project/acmd/chaincfg",
+    "github.com/Actinium-project/acmd/chaincfg/chainhash",
+    "github.com/Actinium-project/acmd/rpcclient",
+    "github.com/Actinium-project/acmd/txscript",
+    "github.com/Actinium-project/acmd/wire",
+    "github.com/Actinium-project/acmutil",
+    "github.com/Actinium-project/acmwallet/wallet/txrules",
+    "github.com/DesWurstes/btcd/txscript",
+    "github.com/btcsuite/btcd/chaincfg",
+    "github.com/btcsuite/btcd/chaincfg/chainhash",
+    "github.com/btcsuite/btcd/rpcclient",
+    "github.com/btcsuite/btcd/txscript",
+    "github.com/btcsuite/btcd/wire",
+    "github.com/btcsuite/btcutil",
+    "github.com/btcsuite/btcwallet/wallet/txrules",
+    "github.com/cpacia/bchutil",
+    "github.com/decred/dcrd/chaincfg",
+    "github.com/decred/dcrd/chaincfg/chainec",
+    "github.com/decred/dcrd/chaincfg/chainhash",
+    "github.com/decred/dcrd/dcrutil",
+    "github.com/decred/dcrd/txscript",
+    "github.com/decred/dcrd/wire",
+    "github.com/decred/dcrwallet/rpc/walletrpc",
+    "github.com/decred/dcrwallet/wallet/txrules",
+    "github.com/ltcsuite/ltcd/chaincfg",
+    "github.com/ltcsuite/ltcd/chaincfg/chainhash",
+    "github.com/ltcsuite/ltcd/rpcclient",
+    "github.com/ltcsuite/ltcd/txscript",
+    "github.com/ltcsuite/ltcd/wire",
+    "github.com/ltcsuite/ltcutil",
+    "github.com/ltcsuite/ltcwallet/wallet/txrules",
+    "github.com/particl/partsuite_partd/chaincfg",
+    "github.com/particl/partsuite_partd/chaincfg/chainhash",
+    "github.com/particl/partsuite_partd/rpcclient",
+    "github.com/particl/partsuite_partd/txscript",
+    "github.com/particl/partsuite_partd/wire",
+    "github.com/particl/partsuite_partutil",
+    "github.com/particl/partsuite_partwallet/wallet/txrules",
+    "github.com/polissuite/gopolis/chaincfg",
+    "github.com/polissuite/gopolis/chaincfg/chainhash",
+    "github.com/polissuite/gopolis/rpcclient",
+    "github.com/polissuite/gopolis/txscript",
+    "github.com/polissuite/gopolis/wire",
+    "github.com/polissuite/gopolisutil",
+    "github.com/polissuite/gopoliswallet/wallet/txrules",
+    "github.com/vertcoin/vtcd/chaincfg",
+    "github.com/vertcoin/vtcd/chaincfg/chainhash",
+    "github.com/vertcoin/vtcd/rpcclient",
+    "github.com/vertcoin/vtcd/txscript",
+    "github.com/vertcoin/vtcd/wire",
+    "github.com/vertcoin/vtcutil",
+    "github.com/vertcoin/vtcwallet/wallet/txrules",
+    "github.com/viacoin/viad/chaincfg",
+    "github.com/viacoin/viad/chaincfg/chainhash",
+    "github.com/viacoin/viad/rpcclient",
+    "github.com/viacoin/viad/txscript",
+    "github.com/viacoin/viad/wire",
+    "github.com/viacoin/viautil",
+    "github.com/viacoin/viawallet/wallet/txrules",
+    "github.com/wakiyamap/monad/chaincfg",
+    "github.com/wakiyamap/monad/chaincfg/chainhash",
+    "github.com/wakiyamap/monad/rpcclient",
+    "github.com/wakiyamap/monad/txscript",
+    "github.com/wakiyamap/monad/wire",
+    "github.com/wakiyamap/monautil",
+    "github.com/wakiyamap/monawallet/wallet/txrules",
+    "github.com/zcoinofficial/xzcd/chaincfg",
+    "github.com/zcoinofficial/xzcd/chaincfg/chainhash",
+    "github.com/zcoinofficial/xzcd/rpcclient",
+    "github.com/zcoinofficial/xzcd/txscript",
+    "github.com/zcoinofficial/xzcd/wire",
+    "github.com/zcoinofficial/xzcutil",
+    "github.com/zcoinofficial/xzcwallet/wallet/txrules",
+    "golang.org/x/crypto/ripemd160",
+    "golang.org/x/crypto/ssh/terminal",
+    "google.golang.org/grpc",
+    "google.golang.org/grpc/credentials",
+  ]
   solver-name = "gps-cdcl"
   solver-version = 1
