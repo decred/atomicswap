@@ -786,8 +786,8 @@ func (cmd *initiateCmd) runCommand(c *rpc.Client) error {
 
 	fmt.Printf("Secret:      %x\n", secret)
 	fmt.Printf("Secret hash: %x\n\n", secretHash)
-	fmt.Printf("Contract fee: %v (%0.8f ACM/kB)\n", b.contractFee, contractFeePerKb)
-	fmt.Printf("Refund fee:   %v (%0.8f ACM/kB)\n\n", b.refundFee, refundFeePerKb)
+	fmt.Printf("Contract fee: %0.8f ACM (%0.8f ACM/kB)\n", b.contractFee.ToBTC(), contractFeePerKb)
+	fmt.Printf("Refund fee:   %0.8f ACM (%0.8f ACM/kB)\n\n", b.refundFee.ToBTC(), refundFeePerKb)
 	fmt.Printf("Contract (%v):\n", b.contractP2SH)
 	fmt.Printf("%x\n\n", b.contract)
 	var contractBuf bytes.Buffer
