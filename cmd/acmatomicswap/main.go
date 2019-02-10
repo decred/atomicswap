@@ -1040,7 +1040,7 @@ func (cmd *auditContractCmd) runOfflineCommand() error {
 	}
 
 	fmt.Printf("Contract address:        %v\n", contractAddr)
-	fmt.Printf("Contract value:          %v\n", acmutil.Amount(cmd.contractTx.TxOut[contractOut].Value))
+	fmt.Printf("Contract value:          %0.8f\n", float64(cmd.contractTx.TxOut[contractOut].Value)*1e-8)
 	fmt.Printf("Recipient address:       %v\n", recipientAddr)
 	fmt.Printf("Author's refund address: %v\n\n", refundAddr)
 
