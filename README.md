@@ -45,19 +45,17 @@ how to use them safely, and an example swap between Decred and Bitcoin.
 
 ## Build instructions
 
-Pre-requirements:
+Requires [Go 1.11](https://golang.org/dl/) or later
 
-  - Go 1.11 or later
+- Clone atomicswap somewhere outside `$GOPATH`:
+  ```
+  $ git clone https://github.com/decred/atomicswap && cd atomicswap
+  ```
 
-```
-$ cd $GOPATH/src/github.com/decred
-$ git clone https://github.com/decred/atomicswap && cd atomicswap
-```
-To build dcratomicswap, for example:
-```
-$ cd cmd/dcratomicswap
-$ go install
-```
+- To install a single tool:
+  ```
+  $ cd cmd/dcratomicswap && go install
+  ```
 
 ## Theory
 
