@@ -212,8 +212,8 @@
   revision = "970e161f293ff12ebbadae51db1f9d47f7414967"
 
 [[projects]]
-  branch = "master"
-  name = "github.com/polissuite/gopolis"
+  branch = "qtumatomicswap"
+  name = "github.com/qtumatomicswap/qtumd"
   packages = [
     "btcec",
     "btcjson",
@@ -223,29 +223,23 @@
     "txscript",
     "wire"
   ]
-  revision = "f2f170540007e291d6c263edf66e8694feb9528f"
+  revision = "ed71c6cbc1902c322fba867d5b5c3f20f85fa03c"
 
 [[projects]]
-  branch = "master"
-  name = "github.com/polissuite/gopolisutil"
+  branch = "qtumamounts"
+  name = "github.com/qtumatomicswap/qtumutil"
   packages = [
     ".",
     "base58",
     "bech32"
   ]
-  revision = "9a399fc0eeb0c35c6666f78e4d3a6d17e186c51f"
+  revision = "fe480ac1b6a3d567d59e2c30f18fd7a7de9a32a8"
 
 [[projects]]
-  branch = "master"
-  name = "github.com/polissuite/gopoliswallet"
+  branch = "qtumdeps"
+  name = "github.com/qtumatomicswap/qtumwallet"
   packages = ["wallet/txrules"]
-  revision = "c5f2ea420bc49a93b1c9cb3c0a57a0c31dc639df"
-
-[[projects]]
-  branch = "master"
-  name = "github.com/polissuite/gox11hash"
-  packages = ["."]
-  revision = "66b5c7eba786ac6ce9ab51a24e24bb2d319b488c"
+  revision = "f970f63d913cbc607009597dfb9d592e4e7c5e1f"
 
 [[projects]]
   branch = "master"
@@ -467,6 +461,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "b403e3758f7b9d3985451de9323dbf395cc4ab3e22b068e87d291fec5d05ae02"
+  inputs-digest = "4216aa5ef62bf73b92f00eaf5199643eea41dafd450be84571d27a8c2b236b0d"
   solver-name = "gps-cdcl"
   solver-version = 1

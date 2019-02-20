@@ -133,18 +133,6 @@
   branch = "master"
   name = "github.com/zcoinofficial/xzcwallet"
   
-[[constraint]] 
-  branch = "master" 
-  name = "github.com/polissuite/gopolis"
-  
-[[constraint]] 
-  branch = "master" 
-  name = "github.com/polissuite/gopolisutil"
- 
-[[constraint]] 
-  branch = "master" 
-  name = "github.com/polissuite/gopoliswallet"
-
 [[constraint]]
   branch = "qtumatomicswap"
   name = "github.com/qtumatomicswap/qtumd"
