@@ -1,0 +1,16 @@
+github.com/btcsuite/btclog v0.0.0-20170628155309-84c8d2346e9f h1:bAs4lUbRJpnnkd9VhRV3jjAVU7DJVjMaK+IsvSeZvFo=
+github.com/btcsuite/btclog v0.0.0-20170628155309-84c8d2346e9f/go.mod h1:TdznJufoqS23FtqVCzL0ZqgP5MqXbb4fg/WgDys70nA=
+github.com/btcsuite/go-socks v0.0.0-20170105172521-4720035b7bfd h1:R/opQEbFEy9JGkIguV40SvRY1uliPX8ifOvi6ICsFCw=
+github.com/btcsuite/go-socks v0.0.0-20170105172521-4720035b7bfd/go.mod h1:HHNXQzUsZCxOoE+CPiyCTO6x34Zs86zZUiwtpXoGdtg=
+github.com/btcsuite/websocket v0.0.0-20150119174127-31079b680792 h1:R8vQdOQdZ9Y3SkEwmHoWBmX1DNXhXZqlTpq6s4tyJGc=
+github.com/btcsuite/websocket v0.0.0-20150119174127-31079b680792/go.mod h1:ghJtEyQwv5/p4Mg4C0fgbePVuGr935/5ddU9Z3TmDRY=
+github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c=
+github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
+github.com/zcoinofficial/xzcd v0.0.0-20180223144319-ae307d1ae907 h1:njQa7c9q7poZfT6rZs2JH+nbQE19jmgCtMHiD3CdvVM=
+github.com/zcoinofficial/xzcd v0.0.0-20180223144319-ae307d1ae907/go.mod h1:LmWKkqH/9wPQg0P32QrB5vG93jKgKn7NYs7QOG/9B5Y=
+github.com/zcoinofficial/xzcutil v0.0.0-20180114060315-ca7c84e1d45c h1:IOZVz5DqcrUoR6GRmFAAJH2DWIMriyQtxe7ijPp9jMA=
+github.com/zcoinofficial/xzcutil v0.0.0-20180114060315-ca7c84e1d45c/go.mod h1:QKaMjiHyQ8elT6PvzdnD4eQH9KUkm1dbH06pZv+sCbg=
+github.com/zcoinofficial/xzcwallet v0.0.0-20180114060732-fe84e6e188b8 h1:JcNrll3YNrbpvv933I/ln8R54Sow5ISkuyMgy6EDGHQ=
+github.com/zcoinofficial/xzcwallet v0.0.0-20180114060732-fe84e6e188b8/go.mod h1:C+Oi8ynULZMpFJUAegYr5fSagGoMp6gcKxslHKF3QpY=
+golang.org/x/crypto v0.0.0-20181030102418-4d3f4d9ffa16 h1:y6ce7gCWtnH+m3dCjzQ1PCuwl28DDIc3VNnvY29DlIA=
+golang.org/x/crypto v0.0.0-20181030102418-4d3f4d9ffa16/go.mod h1:6SG95UA2DQfeDnfUPMdvaQW0Q7yPrPDi9nlGo2tz2b4=

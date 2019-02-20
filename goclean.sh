@@ -13,18 +13,18 @@
 
 set -ex
 
-# Make sure gometalinter is installed and $GOPATH/bin is in your path.
-# $ go get -v github.com/alecthomas/gometalinter"
-# $ gometalinter --install"
-if [ ! -x "$(type -p gometalinter)" ]; then
-  exit 1
-fi
+export GO111MODULE=on
+for i in $(ls -1 cmd)
+do
+	(cd cmd/$i && go build)
 
-# Automatic checks
-test -z "$(gometalinter --vendor --disable-all \
---enable=gofmt \
---enable=vet \
---enable=gosimple \
---enable=unconvert \
---enable=ineffassign \
---deadline=10m ./... 2>&1 | tee /dev/stderr)"
+	# check linters
+	(cd cmd/$i && \
+	 env go mod vendor &&
+	 env GO111MODULE=off golangci-lint run --disable-all --deadline=10m \
+		--enable=gofmt \
+		--enable=vet \
+		--enable=gosimple \
+		--enable=unconvert \
+		--enable=ineffassign)
+done || exit 1

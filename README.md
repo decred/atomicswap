@@ -47,14 +47,16 @@ how to use them safely, and an example swap between Decred and Bitcoin.
 
 Pre-requirements:
 
-  - Go 1.9 or later
-  - [dep](https://github.com/golang/dep)
+  - Go 1.11 or later
 
 ```
 $ cd $GOPATH/src/github.com/decred
 $ git clone https://github.com/decred/atomicswap && cd atomicswap
-$ dep ensure
-$ go install ./cmd/...
+```
+To build dcratomicswap, for example:
+```
+$ cd cmd/dcratomicswap
+$ go install
 ```
 
 ## Theory
