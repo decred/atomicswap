@@ -16,6 +16,7 @@ exists for the following coins and wallets:
 * Monacoin ([Monacoin Core](https://github.com/monacoinproject/monacoin))
 * Particl ([Particl Core](https://github.com/particl/particl-core))
 * Polis ([Polis Core](https://github.com/polispay/polis))
+* Qtum ([Qtum Core](https://github.com/qtumproject/qtum))
 * Vertcoin ([Vertcoin Core](https://github.com/vertcoin/vertcoin))
 * Viacoin ([Viacoin Core](https://github.com/viacoin/viacoin))
 * Zcoin ([Zcoin Core](https://github.com/zcoinofficial/zcoin))
