@@ -5,25 +5,32 @@ secret sizes to prevent fraudulent swaps between two cryptocurrencies with
 different maximum data sizes.  Old contracts will not be usable by the new tools
 and vice-versa.  Please rebuild all tools before conducting new atomic swaps.
 
-# Decred cross-chain atomic swapping
+# Decred-compatible cross-chain atomic swapping
 
-This repo contains utilities to manually perform cross-chain atomic swaps
-between Decred and other cryptocurrencies.  At the moment, support exists for
-the following coins and wallets:
+This repository contains utilities to manually perform cross-chain atomic swaps
+between various supported pairs of cryptocurrencies.  At the moment, support
+exists for the following coins and wallets:
 
 * Bitcoin ([Bitcoin Core](https://github.com/bitcoin/bitcoin))
 * Bitcoin Cash ([Bitcoin ABC](https://github.com/Bitcoin-ABC/bitcoin-abc), [Bitcoin Unlimited](https://github.com/BitcoinUnlimited/BitcoinUnlimited), [Bitcoin XT](https://github.com/bitcoinxt/bitcoinxt))
+* Decred ([dcrwallet](https://github.com/decred/dcrwallet))
 * Litecoin ([Litecoin Core](https://github.com/litecoin-project/litecoin))
 * Monacoin ([Monacoin Core](https://github.com/monacoinproject/monacoin))
 * Particl ([Particl Core](https://github.com/particl/particl-core))
+* Qtum ([Qtum Core](https://github.com/qtumproject/qtum))
 * Vertcoin ([Vertcoin Core](https://github.com/vertcoin/vertcoin))
 * Viacoin ([Viacoin Core](https://github.com/viacoin/viacoin))
 * Zcoin ([Zcoin Core](https://github.com/zcoinofficial/zcoin))
 
+External support exists for the following coins and wallets:
+
+* ThreeFold Token ([ThreeFold Chain](https://github.com/threefoldfoundation/tfchain))
+
 Pull requests implementing support for additional cryptocurrencies and wallets
 are encouraged.  See [GitHub project
 1](https://github.com/decred/atomicswap/projects/1) for the status of coins
-being considered.
+being considered.  Implementing support for a new cryptocurrency provides atomic
+swap compatibility between all current and future supported coins.
 
 These tools do not operate solely on-chain.  A side-channel is required between
 each party performing the swap in order to exchange additional data.  This
@@ -34,24 +41,23 @@ and a way for early adopters to try out the technology.
 
 Due to the requirements of manually exchanging data and creating, sending, and
 watching for the relevant transactions, it is highly recommended to read this
-README in its entirety before attempting to use these tools.  The sections 
-below explain the principles on which the tools operate, the instructions for 
+README in its entirety before attempting to use these tools.  The sections
+below explain the principles on which the tools operate, the instructions for
 how to use them safely, and an example swap between Decred and Bitcoin.
 
 ## Build instructions
 
-Pre-requirements:
+Requires [Go 1.11](https://golang.org/dl/) or later
 
-  - Go 1.9 or later
-  - [dep](https://github.com/golang/dep)
-  - `dcrwallet` 1.1.0 or later (for `dcratomicswap`)
+- Clone atomicswap somewhere outside `$GOPATH`:
+  ```
+  $ git clone https://github.com/decred/atomicswap && cd atomicswap
+  ```
 
-```
-$ cd $GOPATH/src/github.com/decred
-$ git clone https://github.com/decred/atomicswap && cd atomicswap
-$ dep ensure
-$ go install ./cmd/...
-```
+- To install a single tool:
+  ```
+  $ cd cmd/dcratomicswap && go install
+  ```
 
 ## Theory
 
@@ -71,7 +77,7 @@ involved.
 
 One party (called counterparty 1 or the initiator) generates a secret and pays
 the intended trade amount into a contract transaction.  The contract output can
-be redeemed by the second party (called countryparty 2 or the participant) as
+be redeemed by the second party (called counterparty 2 or the participant) as
 long as the secret is known.  If a period of time (typically 48 hours) expires
 after the contract transaction has been mined but has not been redeemed by the
 participant, the contract output can be refunded back to the initiator's wallet.
@@ -260,7 +266,7 @@ Published contract transaction (346f4901dff1d69197850289b481f4331913126a8886861e
 ```
 
 Once A has initialized the swap, B must audit the contract and contract
-transaction to verify: 
+transaction to verify:
 
 1. The recipient address was the BTC address that was provided to A
 2. The contract value is the expected amount of BTC to receive
