@@ -55,7 +55,7 @@ var (
 // transaction on the other chain.  Any chain can be used so long as it supports
 // OP_SHA256 and OP_CHECKLOCKTIMEVERIFY.
 //
-// Example scenerios using litecoin as the second chain:
+// Example scenerios using actinium as the second chain:
 //
 // Scenerio 1:
 //   cp1 initiates (dcr)
