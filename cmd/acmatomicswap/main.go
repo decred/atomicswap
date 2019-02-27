@@ -43,7 +43,7 @@ var (
 
 var (
 	flagset     = flag.NewFlagSet("", flag.ExitOnError)
-	connectFlag = flagset.String("s", "localhost", "host[:port] of Actinium Core wallet RPC server")
+	connectFlag = flagset.String("s", "localhost", "host[:port] of Actinium wallet RPC server")
 	rpcuserFlag = flagset.String("rpcuser", "", "username for wallet RPC authentication")
 	rpcpassFlag = flagset.String("rpcpass", "", "password for wallet RPC authentication")
 	testnetFlag = flagset.Bool("testnet", false, "use testnet network")
