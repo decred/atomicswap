@@ -18,6 +18,7 @@ exists for the following coins and wallets:
 * Qtum ([Qtum Core](https://github.com/qtumproject/qtum))
 * Vertcoin ([Vertcoin Core](https://github.com/vertcoin/vertcoin))
 * Viacoin ([Viacoin Core](https://github.com/viacoin/viacoin))
+* VIPSTARCOIN ([VIPSTARCOIN Core](https://github.com/VIPSTARCOIN/VIPSTARCOIN))
 * Zcoin ([Zcoin Core](https://github.com/zcoinofficial/zcoin))
 
 External support exists for the following coins and wallets:
