@@ -188,7 +188,7 @@ func run() (err error, showUsage bool) {
 	}
 
 	if *testnetFlag {
-		chainParams = &chaincfg.TestNet4Params
+		chainParams = &chaincfg.TestNet3Params
 	}
 
 	var cmd command
@@ -379,7 +379,7 @@ func walletPort(params *chaincfg.Params) string {
 	switch params {
 	case &chaincfg.MainNetParams:
 		return "31916"
-	case &chaincfg.TestNet4Params:
+	case &chaincfg.TestNet3Params:
 		return "32916"
 	default:
 		return ""
