@@ -393,7 +393,7 @@ func walletPort(params *chaincfg.Params) string {
 func createSig(tx *wire.MsgTx, idx int, pkScript []byte, addr xzcutil.Address,
 	c *rpc.Client) (sig, pubkey []byte, err error) {
 
-	wif, err := c.DumpPrivKey(addr)
+	wif, err := dpk(c, addr)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -402,6 +402,58 @@ func createSig(tx *wire.MsgTx, idx int, pkScript []byte, addr xzcutil.Address,
 		return nil, nil, err
 	}
 	return sig, wif.PrivKey.PubKey().SerializeCompressed(), nil
+}
+
+func dpk(c *rpc.Client, addr xzcutil.Address) (wif *xzcutil.WIF, err error) {
+	addrStr := addr.EncodeAddress()
+	if !addr.IsForNet(chainParams) {
+		return nil, fmt.Errorf("address %v is not intended for use on %v",
+			addrStr, chainParams.Name)
+	}
+	param0, err := json.Marshal(addrStr)
+	if err != nil {
+		return nil, err
+	}
+	params := []json.RawMessage{param0}
+	// This should always fail the first time as Zcoin added a one-time authoriz-
+	// ation key returned in error string. Along with a warning. The idea is that
+	// inexperienced people are warned if scammers propose they use `dumpprivkey'
+	_, err = c.RawRequest("dumpprivkey", params)
+	if err == nil {
+		unexpected := errors.New("dpk: No authorization challenge")
+		return nil, unexpected
+	}
+
+	errStr := err.Error()
+	searchStr := "authorization code is: "
+	i0 := strings.Index(errStr, searchStr)
+	if i0 == -1 {
+		return nil, err
+	}
+	i := i0 + len(searchStr)
+	authStr := errStr[i : i+4]
+
+	param1, err := json.Marshal(authStr)
+	if err != nil {
+		return nil, err
+	}
+	params2 := []json.RawMessage{param0, param1}
+	rawResp2, err := c.RawRequest("dumpprivkey", params2)
+	if err != nil {
+		return nil, err
+	}
+	var sk string
+	err = json.Unmarshal(rawResp2, &sk)
+	if err != nil {
+		return nil, err
+	}
+
+	w, err := xzcutil.DecodeWIF(sk)
+	if err != nil {
+		return nil, err
+	}
+
+	return w, nil
 }
 
 // fundRawTransaction calls the fundrawtransaction JSON-RPC method.  It is
