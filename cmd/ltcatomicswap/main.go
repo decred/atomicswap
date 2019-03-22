@@ -415,9 +415,11 @@ func fundRawTransaction(c *rpc.Client, tx *wire.MsgTx, feePerKb ltcutil.Amount) 
 		return nil, 0, err
 	}
 	param1, err := json.Marshal(struct {
-		FeeRate float64 `json:"feeRate"`
+		FeeRate    float64 `json:"feeRate"`
+		ChangeType string  `json:"change_type"`
 	}{
-		FeeRate: feePerKb.ToBTC(),
+		FeeRate:    feePerKb.ToBTC(),
+		ChangeType: "legacy",
 	})
 	if err != nil {
 		return nil, 0, err
