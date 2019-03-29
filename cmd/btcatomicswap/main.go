@@ -568,7 +568,7 @@ func promptPublishTx(c *rpc.Client, tx *wire.MsgTx, name string) error {
 			continue
 		}
 
-		txHash, err := c.SendRawTransaction(tx, false)
+		txHash, err := c.SendRawTransaction(tx, 0)
 		if err != nil {
 			return fmt.Errorf("sendrawtransaction: %v", err)
 		}
@@ -638,7 +638,7 @@ func buildContract(c *rpc.Client, args *contractArgs) (*builtContract, error) {
 	if err != nil {
 		return nil, fmt.Errorf("fundrawtransaction: %v", err)
 	}
-	contractTx, complete, err := c.SignRawTransaction(unsignedContract)
+	contractTx, complete, err := c.SignRawTransactionWithWallet(unsignedContract)
 	if err != nil {
 		return nil, fmt.Errorf("signrawtransaction: %v", err)
 	}
