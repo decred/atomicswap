@@ -452,6 +452,68 @@ func fundRawTransaction(c *rpc.Client, tx *wire.MsgTx, feePerKb btcutil.Amount) 
 	return fundedTx, feeAmount, nil
 }
 
+// signRawTransaction calls the signRawTransaction JSON-RPC method.  It is
+// implemented manually as client support is currently outdated from the
+// btcd/rpcclient package.
+func signRawTransaction(c *rpc.Client, tx *wire.MsgTx) (fundedTx *wire.MsgTx, complete bool, err error) {
+	var buf bytes.Buffer
+	buf.Grow(tx.SerializeSize())
+	tx.Serialize(&buf)
+	param, err := json.Marshal(hex.EncodeToString(buf.Bytes()))
+	if err != nil {
+		return nil, false, err
+	}
+	rawResp, err := c.RawRequest("signrawtransactionwithwallet", []json.RawMessage{param})
+	if err != nil {
+		return nil, false, err
+	}
+	var resp struct {
+		Hex      string `json:"hex"`
+		Complete bool   `json:"complete"`
+	}
+	err = json.Unmarshal(rawResp, &resp)
+	if err != nil {
+		return nil, false, err
+	}
+	fundedTxBytes, err := hex.DecodeString(resp.Hex)
+	if err != nil {
+		return nil, false, err
+	}
+	fundedTx = &wire.MsgTx{}
+	err = fundedTx.Deserialize(bytes.NewReader(fundedTxBytes))
+	if err != nil {
+		return nil, false, err
+	}
+	return fundedTx, resp.Complete, nil
+}
+
+// sendRawTransaction calls the signRawTransaction JSON-RPC method.  It is
+// implemented manually as client support is currently outdated from the
+// btcd/rpcclient package.
+func sendRawTransaction(c *rpc.Client, tx *wire.MsgTx) (*chainhash.Hash, error) {
+	var buf bytes.Buffer
+	buf.Grow(tx.SerializeSize())
+	tx.Serialize(&buf)
+
+	param, err := json.Marshal(hex.EncodeToString(buf.Bytes()))
+	if err != nil {
+		return nil, err
+	}
+	hex, err := c.RawRequest("sendrawtransaction", []json.RawMessage{param})
+	if err != nil {
+		return nil, err
+	}
+	s := string(hex)
+	// we need to remove quotes from the json response
+	s = s[1 : len(s)-1]
+	hash, err := chainhash.NewHashFromStr(s)
+	if err != nil {
+		return nil, err
+	}
+
+	return hash, nil
+}
+
 // getFeePerKb queries the wallet for the transaction relay fee/kB to use and
 // the minimum mempool relay fee.  It first tries to get the user-set fee in the
 // wallet.  If unset, it attempts to find an estimate using estimatefee 6.  If
@@ -568,7 +630,7 @@ func promptPublishTx(c *rpc.Client, tx *wire.MsgTx, name string) error {
 			continue
 		}
 
-		txHash, err := c.SendRawTransaction(tx, false)
+		txHash, err := sendRawTransaction(c, tx)
 		if err != nil {
 			return fmt.Errorf("sendrawtransaction: %v", err)
 		}
@@ -638,7 +700,7 @@ func buildContract(c *rpc.Client, args *contractArgs) (*builtContract, error) {
 	if err != nil {
 		return nil, fmt.Errorf("fundrawtransaction: %v", err)
 	}
-	contractTx, complete, err := c.SignRawTransaction(unsignedContract)
+	contractTx, complete, err := signRawTransaction(c, unsignedContract)
 	if err != nil {
 		return nil, fmt.Errorf("signrawtransaction: %v", err)
 	}
