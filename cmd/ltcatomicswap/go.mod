@@ -1,5 +1,7 @@
 module github.com/decred/atomicswap/cmd/ltcatomicswap
 
+go 1.12
+
 require (
 	github.com/Roasbeef/btcutil v0.0.0-20180406014609-dfb640c57141 // indirect
 	github.com/btcsuite/btclog v0.0.0-20170628155309-84c8d2346e9f // indirect
@@ -8,7 +10,7 @@ require (
 	github.com/btcsuite/websocket v0.0.0-20150119174127-31079b680792 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/ltcsuite/ltcd v0.0.0-20181017022805-01737289d815
-	github.com/ltcsuite/ltcutil v0.0.0-20170825230323-a88d7dfb1c02
+	github.com/ltcsuite/ltcutil v0.0.0-20170913195058-8e0fd08dd902
 	github.com/ltcsuite/ltcwallet v0.0.0-20170424230739-689fccd15fdf
 	github.com/roasbeef/btcd v0.0.0-20180418012700-a03db407e40d // indirect
 	github.com/roasbeef/btcutil v0.0.0-20180406014609-dfb640c57141 // indirect
@@ -17,6 +19,6 @@ require (
 
 replace (
 	github.com/ltcsuite/ltcd => github.com/jrick/btcd v0.0.0-20180219142856-941d1c922dfd
-	github.com/ltcsuite/ltcutil => github.com/jrick/btcutil v0.0.0-20170913155058-8e0fd08dd902
-	github.com/ltcsuite/ltcwallet => github.com/jrick/btcwallet v0.0.0-20170912202655-d2214fcebbf4
+	github.com/ltcsuite/ltcutil => github.com/jrick/btcutil v0.0.0-20170913195058-8e0fd08dd902
+	github.com/ltcsuite/ltcwallet => github.com/jrick/btcwallet v0.0.0-20170913141554-d2214fcebbf4
 )

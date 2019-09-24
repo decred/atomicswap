@@ -14,8 +14,12 @@ github.com/jrick/btcd v0.0.0-20180219142856-941d1c922dfd h1:euKeuJl+0+9fs0Xfybpc
 github.com/jrick/btcd v0.0.0-20180219142856-941d1c922dfd/go.mod h1:gpci2+xh6k0M5EHMTt7z3LpfFMTu1MyAxLHXZbz95H0=
 github.com/jrick/btcutil v0.0.0-20170913155058-8e0fd08dd902 h1:mqAuv2johNNfHwRXqlgxxw9XUByaHh8t8bKsI/CEGfA=
 github.com/jrick/btcutil v0.0.0-20170913155058-8e0fd08dd902/go.mod h1:H3KHCA2KUelJVfx+o7lSpsaDvOM944Mu4GrjiwjlhHQ=
+github.com/jrick/btcutil v0.0.0-20170913195058-8e0fd08dd902 h1:MCWTIFyM4dt99Jx9QSLzOjghxXUJT8FN20lM1v6kEjY=
+github.com/jrick/btcutil v0.0.0-20170913195058-8e0fd08dd902/go.mod h1:H3KHCA2KUelJVfx+o7lSpsaDvOM944Mu4GrjiwjlhHQ=
 github.com/jrick/btcwallet v0.0.0-20170912202655-d2214fcebbf4 h1:jk7T6jm9kitTEdGYq4xMLUkUUJHFExBSyWg4DkPuMZM=
 github.com/jrick/btcwallet v0.0.0-20170912202655-d2214fcebbf4/go.mod h1:QUcDza6jDr0Jehwn6NOMXKK8HeKMQ2r4a/TuSDIycb0=
+github.com/jrick/btcwallet v0.0.0-20170913141554-d2214fcebbf4 h1:oeCejPHyDzgEQSa/kZNz5tV4sdwtKYT3vrYs6QFYLIk=
+github.com/jrick/btcwallet v0.0.0-20170913141554-d2214fcebbf4/go.mod h1:QUcDza6jDr0Jehwn6NOMXKK8HeKMQ2r4a/TuSDIycb0=
 github.com/ltcsuite/ltcd v0.0.0-20181017022805-01737289d815 h1:KnZ4WmQ9bjs6ZR0a8f2ywiJ/jv716H9sHQpPuiN57fU=
 github.com/ltcsuite/ltcd v0.0.0-20181017022805-01737289d815/go.mod h1:EHxR9R4IfKfcjAQ/nQiimQSLaRxdyNz926as4KTtNTg=
 github.com/ltcsuite/ltcutil v0.0.0-20170825230323-a88d7dfb1c02 h1:He23ajyN2PAMgrXCE6/Epar2+QnuGVjVx7TX5V0Xn1E=
