@@ -422,8 +422,8 @@ links to the four raw transactions published in the example:
 | Description | Link to raw transaction |
 | - | - |
 | Bitcoin contract created by A | https://test-insight.bitpay.com/api/rawtx/9e47b18deb57cf0f53fa615d360ded1cd6f28aed560056e6f1771741e01c7db5 |
-| Decred contract created by B | https://testnet.decred.org/api/rawtx/5615b8804a5a55c8c2f980b234632ed34c4cacd059fa5049c050106a9ce7c829 |
-| A's Decred redemption | https://testnet.decred.org/api/rawtx/e4d8e8a3e00935c44e38d5e839045d1cb6f42593dc8df784014e306c571fd67f |
+| Decred contract created by B | https://testnet.decred.org/api/tx/decoded/5615b8804a5a55c8c2f980b234632ed34c4cacd059fa5049c050106a9ce7c829?indent=true |
+| A's Decred redemption | https://testnet.decred.org/api/tx/decoded/e4d8e8a3e00935c44e38d5e839045d1cb6f42593dc8df784014e306c571fd67f?indent=true |
 | B's Bitcoin redemption | https://test-insight.bitpay.com/api/rawtx/ba5818e498abacb99dd57493412d69722fe2dfc324af0d9ad1c28c120f4536d5 |
 
 ## First mainnet DCR-LTC atomic swap
