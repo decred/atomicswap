@@ -3,14 +3,13 @@ module github.com/decred/atomicswap/cmd/dcratomicswap
 go 1.15
 
 require (
-	github.com/decred/dcrd/chaincfg v1.3.0
-	github.com/decred/dcrd/chaincfg/chainhash v1.0.1
-	github.com/decred/dcrd/dcrec v0.0.0-20181212181811-1a370d38d671
-	github.com/decred/dcrd/dcrutil v1.2.0
-	github.com/decred/dcrd/txscript v1.0.2
-	github.com/decred/dcrd/wire v1.2.0
-	github.com/decred/dcrwallet/rpc/walletrpc v0.2.0
-	github.com/decred/dcrwallet/wallet v1.3.0
-	golang.org/x/crypto v0.0.0-20181203042331-505ab145d0a9
-	google.golang.org/grpc v1.17.0
+	decred.org/dcrwallet v1.6.0-rc3
+	github.com/decred/dcrd/chaincfg/chainhash v1.0.2
+	github.com/decred/dcrd/chaincfg/v3 v3.0.0
+	github.com/decred/dcrd/dcrec v1.0.0
+	github.com/decred/dcrd/dcrutil/v3 v3.0.0
+	github.com/decred/dcrd/txscript/v3 v3.0.0
+	github.com/decred/dcrd/wire v1.4.0
+	golang.org/x/crypto v0.0.0-20200820211705-5c72a883971a
+	google.golang.org/grpc v1.32.0
 )
