@@ -6,14 +6,14 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        go: [1.12, 1.13]
+        go: [1.14, 1.15]
     steps:
       - name: Set up Go
-        uses: actions/setup-go@v1
+        uses: actions/setup-go@v2
         with:
           go-version: ${{ matrix.go }}
       - name: Check out source
-        uses: actions/checkout@v1
+        uses: actions/checkout@v2
       - name: Build
         env:
           GO111MODULE: "on"
