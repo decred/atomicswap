@@ -870,7 +870,7 @@ func (cmd *redeemCmd) runCommand(c *rpc.Client) error {
 
 	addr, err := getRawChangeAddress(c)
 	if err != nil {
-		return fmt.Errorf("getrawchangeaddres: %v", err)
+		return fmt.Errorf("getrawchangeaddress: %v", err)
 	}
 	outScript, err := txscript.PayToAddrScript(addr)
 	if err != nil {
