@@ -1,5 +1,7 @@
 module github.com/decred/atomicswap/cmd/dcratomicswap
 
+go 1.15
+
 require (
 	github.com/decred/dcrd/chaincfg v1.3.0
 	github.com/decred/dcrd/chaincfg/chainhash v1.0.1

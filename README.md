@@ -123,8 +123,8 @@ the swap.
 
 Different tools may require different flags to use them with the supported
 wallet.  For example, `btcatomicswap` includes flags for the RPC username and
-password while `dcratomicswap` does not.  Running a tool without any parameters
-will show the full usage help.
+password while `dcratomicswap` requires flags for TLS client authentication.
+Running a tool without any parameters will show the full usage help.
 
 All of the tools support the same six commands.  These commands are:
 
@@ -295,7 +295,7 @@ expires, but should be saved in case a refund is necessary.
 
 _Party B runs:_
 ```
-$ dcratomicswap --testnet participate TsfWDVTAcsLaHUhHnLLKkGnZuJz2vkmM6Vr 1.0 29c36b8dd380e0426bdc1d834e74a630bfd5d111
+$ dcratomicswap --testnet --clientcert=client.cert --clientkey=client.key participate TsfWDVTAcsLaHUhHnLLKkGnZuJz2vkmM6Vr 1.0 29c36b8dd380e0426bdc1d834e74a630bfd5d111
 Passphrase:
 
 Contract fee: 0.000251 DCR (0.00100400 DCR/kB)
@@ -346,7 +346,7 @@ reveals the secret to B, allowing B to withdraw from the Bitcoin contract.
 
 _Party A runs:_
 ```
-$ dcratomicswap --testnet redeem 63a61429c36b8dd380e0426bdc1d834e74a630bfd5d1118876a9149ee19833332a04d2be97b5c99c970191221c070c6704e6dabb59b17576a914b0ec0640c89cf803b8fdbd6e0183c354f71748c46888ac 010000000137afc6c25b027cb0a1db19a7aac365854796260c4c1077e3e8accae5e4c300e90300000001ffffffff02441455980100000000001976a9144d7c96b6d2360e48a07528332e537d81e068f8ba88ac00e1f50500000000000017a914195fb53333e61a415e9fda21bb991b38b5a4e1c387000000000000000001ffffffffffffffff00000000ffffffff6b483045022100b30971448c93be84c28b98ae159963e9521a84d0c3849821b6e8897d59cf4e6c0220228785cb8d1dba40752e4bd09d99b92b27bc3837b1c547f8b4ee8aba1dfec9310121035a12a086ecd1397f7f68146f4f251253b7c0092e167a1c92ff9e89cf96c68b5f 3e0b064c97247732a3b345ce7b2a835d928623cb2871c26db4c2539a38e61a16
+$ dcratomicswap --testnet --clientcert=client.cert --clientkey=client.key redeem 63a61429c36b8dd380e0426bdc1d834e74a630bfd5d1118876a9149ee19833332a04d2be97b5c99c970191221c070c6704e6dabb59b17576a914b0ec0640c89cf803b8fdbd6e0183c354f71748c46888ac 010000000137afc6c25b027cb0a1db19a7aac365854796260c4c1077e3e8accae5e4c300e90300000001ffffffff02441455980100000000001976a9144d7c96b6d2360e48a07528332e537d81e068f8ba88ac00e1f50500000000000017a914195fb53333e61a415e9fda21bb991b38b5a4e1c387000000000000000001ffffffffffffffff00000000ffffffff6b483045022100b30971448c93be84c28b98ae159963e9521a84d0c3849821b6e8897d59cf4e6c0220228785cb8d1dba40752e4bd09d99b92b27bc3837b1c547f8b4ee8aba1dfec9310121035a12a086ecd1397f7f68146f4f251253b7c0092e167a1c92ff9e89cf96c68b5f 3e0b064c97247732a3b345ce7b2a835d928623cb2871c26db4c2539a38e61a16
 Passphrase:
 
 Redeem fee: 0.000334 DCR (0.00100300 DCR/kB)

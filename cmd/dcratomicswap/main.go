@@ -10,10 +10,13 @@ import (
 	"context"
 	"crypto/rand"
 	"crypto/sha256"
+	"crypto/tls"
+	"crypto/x509"
 	"encoding/hex"
 	"errors"
 	"flag"
 	"fmt"
+	"io/ioutil"
 	"net"
 	"os"
 	"path/filepath"
@@ -52,10 +55,12 @@ var (
 )
 
 var (
-	flagset     = flag.NewFlagSet("", flag.ExitOnError)
-	connectFlag = flagset.String("s", "localhost", "host[:port] of dcrwallet gRPC server")
-	certFlag    = flagset.String("c", filepath.Join(dcrutil.AppDataDir("dcrwallet", false), "rpc.cert"), "dcrwallet RPC certificate path")
-	testnetFlag = flagset.Bool("testnet", false, "use testnet network")
+	flagset        = flag.NewFlagSet("", flag.ExitOnError)
+	connectFlag    = flagset.String("s", "localhost", "host[:port] of dcrwallet gRPC server")
+	certFlag       = flagset.String("c", filepath.Join(dcrutil.AppDataDir("dcrwallet", false), "rpc.cert"), "dcrwallet RPC certificate path")
+	clientCertFlag = flagset.String("clientcert", "", "path to client authentication certificate")
+	clientKeyFlag  = flagset.String("clientkey", "", "path to client authentication key")
+	testnetFlag    = flagset.Bool("testnet", false, "use testnet network")
 )
 
 // There are two directions that the atomic swap can be performed, as the
@@ -346,15 +351,32 @@ func run() (err error, showUsage bool) {
 		return cmd.runOfflineCommand(), false
 	}
 
+	if *clientCertFlag == "" || *clientKeyFlag == "" {
+		return fmt.Errorf("-clientcert and -clientkey flags are required; see -h for usage"), false
+	}
+
 	connect, err := normalizeAddress(*connectFlag, walletPort(chainParams))
 	if err != nil {
 		return fmt.Errorf("wallet server address: %v", err), true
 	}
 
-	creds, err := credentials.NewClientTLSFromFile(*certFlag, "")
+	keypair, err := tls.LoadX509KeyPair(*clientCertFlag, *clientKeyFlag)
 	if err != nil {
-		return fmt.Errorf("open certificate: %v", err), false
+		return fmt.Errorf("open client keypair: %v", err), false
 	}
+	tc := &tls.Config{
+		Certificates: []tls.Certificate{keypair},
+		RootCAs:      x509.NewCertPool(),
+	}
+	serverCAs, err := ioutil.ReadFile(*certFlag)
+	if err != nil {
+		help := *certFlag == ""
+		return fmt.Errorf("cannot open server certificate: %v", err), help
+	}
+	if !tc.RootCAs.AppendCertsFromPEM(serverCAs) {
+		return fmt.Errorf("no certificates found in %q", *certFlag), false
+	}
+	creds := credentials.NewTLS(tc)
 	conn, err := grpc.Dial(connect, grpc.WithTransportCredentials(creds))
 	if err != nil {
 		return fmt.Errorf("grpc dial: %v", err), false
