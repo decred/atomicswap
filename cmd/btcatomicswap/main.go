@@ -46,6 +46,7 @@ var (
 	rpcuserFlag = flagset.String("rpcuser", "", "username for wallet RPC authentication")
 	rpcpassFlag = flagset.String("rpcpass", "", "password for wallet RPC authentication")
 	testnetFlag = flagset.Bool("testnet", false, "use testnet network")
+	regtestFlag = flagset.Bool("regtest", false, "use regtest network")
 )
 
 // There are two directions that the atomic swap can be performed, as the
@@ -188,6 +189,10 @@ func run() (err error, showUsage bool) {
 
 	if *testnetFlag {
 		chainParams = &chaincfg.TestNet3Params
+	}
+
+	if *regtestFlag {
+		chainParams = &chaincfg.RegressionNetParams
 	}
 
 	var cmd command
