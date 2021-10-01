@@ -81,7 +81,7 @@ after the contract transaction has been mined but has not been redeemed by the
 participant, the contract output can be refunded back to the initiator's wallet.
 
 For simplicity, we assume the initiator wishes to trade Bitcoin for Decred with
-the participant.  The initiator can also trade Decred for Bitcoin and the steps
+the participant.  The initiator can also trade Decred for Bitcoin, and the steps
 will be the same, but with each step performed on the other blockchain.
 
 The participant is unable to spend from the initiator's Bitcoin contract at this
@@ -216,7 +216,7 @@ correct, and that the locktime is sensible.
 
 The first step is for both parties to exchange addresses on both blockchains. If
 party A (the initiator) wishes to trade Bitcoin for Decred, party B (the
-participant) must provide their Bitcoin address and the initiator must provide
+participant) must provide their Bitcoin address, and the initiator must provide
 the participant their Decred address.
 
 _Party A runs:_
