@@ -6,7 +6,7 @@
 package main
 
 import (
-	"github.com/decred/dcrd/txscript/v3"
+	"github.com/decred/dcrd/txscript/v4"
 	"github.com/decred/dcrd/wire"
 )
 
@@ -35,6 +35,33 @@ const (
 	//   - 33 bytes serialized compressed pubkey
 	//   - OP_FALSE
 	refundAtomicSwapSigScriptSize = 1 + 73 + 1 + 33 + 1
+
+	// redeemPrivateAtomicSwapSigScriptSize is the worst case (largest) serialize
+	// size of a transaction input script to redeem a private atomic swap contract.
+	// This does not include final push for the contract itself.
+	//
+	//  - OP_DATA_65
+	//  - 64 bytes schnorr signature + 1 byte sighash
+	//  - OP_DATA_33
+	//  - 33 bytes serialized compressed pubkey
+	//  - OP_DATA_65
+	//  - 64 bytes schnorr signature + 1 byte sighash
+	//  - OP_DATA_33
+	//  - 33 bytes serialized compressed pubkey
+	//  - OP_TRUE
+	redeemPrivateAtomicSwapSigScriptSize = 1 + 65 + 1 + 33 + 1 + 65 + 1 + 33 + 1
+
+	// refundPrivateAtomicSwapSigScriptSize is the worst case (largest)
+	// serialize size of a transaction input script that refunds a private
+	// atomic swap contract. This does not include final push for the
+	// contract itself.
+	//
+	//  - OP_DATA_65
+	//  - 64 bytes schnorr signature + 1 byte sighash
+	//  - OP_DATA_33
+	//  - 33 bytes serialized compressed pubkey
+	//  - OP_FALSE
+	refundPrivateAtomicSwapSigScriptSize = 1 + 65 + 1 + 33 + 1
 )
 
 func sumOutputSerializeSizes(outputs []*wire.TxOut) (serializeSize int) {
@@ -91,5 +118,39 @@ func estimateRefundSerializeSize(contract []byte, txOuts []*wire.TxOut) int {
 	return 12 + (2 * wire.VarIntSerializeSize(1)) +
 		wire.VarIntSerializeSize(1) +
 		inputSize(refundAtomicSwapSigScriptSize+contractPushSize) +
+		sumOutputSerializeSizes(txOuts)
+}
+
+// estimatePrivateRedeemSerializeSize returns a worst case serialize size
+// estimate for a transaction that redeems a private atomic swap P2SH output.
+func estimatePrivateRedeemSerializeSize(contract []byte, txOuts []*wire.TxOut) int {
+	contractPush, err := txscript.NewScriptBuilder().AddData(contract).Script()
+	if err != nil {
+		// Should never be hit since this script does exceed the limits.
+		panic(err)
+	}
+	contractPushSize := len(contractPush)
+
+	// 12 additional bytes are for version, locktime and expiry.
+	return 12 + (2 * wire.VarIntSerializeSize(1)) +
+		wire.VarIntSerializeSize(1) +
+		inputSize(redeemPrivateAtomicSwapSigScriptSize+contractPushSize) +
+		sumOutputSerializeSizes(txOuts)
+}
+
+// estimatePrivateRefundSerializeSize returns a worst case serialize size
+// estimate for a transaction that refunds a private atomic swap P2SH output.
+func estimatePrivateRefundSerializeSize(contract []byte, txOuts []*wire.TxOut) int {
+	contractPush, err := txscript.NewScriptBuilder().AddData(contract).Script()
+	if err != nil {
+		// Should never be hit since this script does exceed the limits.
+		panic(err)
+	}
+	contractPushSize := len(contractPush)
+
+	// 12 additional bytes are for version, locktime and expiry.
+	return 12 + (2 * wire.VarIntSerializeSize(1)) +
+		wire.VarIntSerializeSize(1) +
+		inputSize(refundPrivateAtomicSwapSigScriptSize+contractPushSize) +
 		sumOutputSerializeSizes(txOuts)
 }
