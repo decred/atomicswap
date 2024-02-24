@@ -792,18 +792,12 @@ func buildRefund(c *rpc.Client, contract []byte, contractTx *wire.MsgTx, feePerK
 		return nil, 0, err
 	}
 
-	sender, _, _, _, err := ExtractSwapDetails(
+	sender, _, locktime, _, err := ExtractSwapDetails(
 		contract,
 		true, // segwit
 		chainParams)
 	if err != nil {
 		return nil, 0, err
-	}
-
-	pushes, err := txscript.ExtractAtomicSwapDataPushes(0, contract)
-	if err != nil {
-		// expected to only be called with good input
-		panic(err)
 	}
 
 	refundAddr, err := btcutil.NewAddressWitnessPubKeyHash(sender.ScriptAddress(), chainParams)
@@ -812,7 +806,7 @@ func buildRefund(c *rpc.Client, contract []byte, contractTx *wire.MsgTx, feePerK
 	}
 
 	refundTx = wire.NewMsgTx(txVersion)
-	refundTx.LockTime = uint32(pushes.LockTime)
+	refundTx.LockTime = uint32(locktime)
 	refundTx.AddTxOut(wire.NewTxOut(0, refundOutScript)) // amount set below
 	refundSize := estimateRefundSerializeSize(contract, refundTx.TxOut)
 	refundFee = txrules.FeeForSerializeSize(feePerKb, refundSize)
@@ -822,7 +816,6 @@ func buildRefund(c *rpc.Client, contract []byte, contractTx *wire.MsgTx, feePerK
 	}
 
 	refundTx.AddTxIn(wire.NewTxIn(&contractOutPoint, nil, nil))
-	// refundTx.TxIn[0].Sequence = uint32(0xfffffffe)
 	refundTx.TxIn[0].Sequence = 0
 	refundTx.TxIn[0].SignatureScript = nil
 
@@ -927,7 +920,7 @@ func (cmd *initiateCmd) runCommand(c *rpc.Client) error {
 
 	fmt.Printf("Secret:      %x\n", secret)
 	fmt.Printf("Secret hash: %x\n\n", secretHash)
-	fmt.Printf("Locktime: %ds\n\n", locktime-time.Now().Unix())
+	fmt.Printf("Locktime: %d seconds - expires at unix time %d (%x))\n\n", locktime-time.Now().Unix(), locktime, locktime)
 	fmt.Printf("Contract fee: %v (%0.8f BTC/kB)\n", b.contractFee, contractFeePerKb)
 	fmt.Printf("Refund fee:   %v (%0.8f BTC/kB)\n\n", b.refundFee, refundFeePerKb)
 	fmt.Printf("Contract (%v):\n", b.contractP2WSH)
