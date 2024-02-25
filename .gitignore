@@ -1,6 +1,10 @@
 vendor/
 
+# bin
 btcatomicswap
+btcatomicswap_legacy
+
+# go proj
 go.work*
 .vscode/
 

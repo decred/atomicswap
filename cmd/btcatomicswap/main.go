@@ -920,7 +920,8 @@ func (cmd *initiateCmd) runCommand(c *rpc.Client) error {
 
 	fmt.Printf("Secret:      %x\n", secret)
 	fmt.Printf("Secret hash: %x\n\n", secretHash)
-	fmt.Printf("Locktime: %d seconds - expires at unix time %d (%x))\n\n", locktime-time.Now().Unix(), locktime, locktime)
+	fmt.Printf("Locktime: %d seconds - expires at unix time %d (%x))\n\n",
+		locktime-time.Now().Unix(), locktime, locktime)
 	fmt.Printf("Contract fee: %v (%0.8f BTC/kB)\n", b.contractFee, contractFeePerKb)
 	fmt.Printf("Refund fee:   %v (%0.8f BTC/kB)\n\n", b.refundFee, refundFeePerKb)
 	fmt.Printf("Contract (%v):\n", b.contractP2WSH)
@@ -963,6 +964,8 @@ func (cmd *participateCmd) runCommand(c *rpc.Client) error {
 
 	fmt.Printf("Contract fee: %v (%0.8f BTC/kB)\n", b.contractFee, contractFeePerKb)
 	fmt.Printf("Refund fee:   %v (%0.8f BTC/kB)\n\n", b.refundFee, refundFeePerKb)
+	fmt.Printf("Locktime: %d seconds - expires at unix time %d (%x))\n\n",
+		locktime-time.Now().Unix(), locktime, locktime)
 	fmt.Printf("Contract (%v):\n", b.contractP2WSH)
 	fmt.Printf("%x\n\n", b.contract)
 	var contractBuf bytes.Buffer
@@ -1147,22 +1150,45 @@ func (cmd *extractSecretCmd) runCommand(c *rpc.Client) error {
 }
 
 func (cmd *extractSecretCmd) runOfflineCommand() error {
-	// Loop over all pushed data from all inputs, searching for one that hashes
-	// to the expected hash.  By searching through all data pushes, we avoid any
-	// issues that could be caused by the initiator redeeming the participant's
-	// contract with some "nonstandard" or unrecognized transaction or script
+	// Loop over witness items from all inputs, searching for one that hashes to
+	// the expected hash.
+	// We also try to avoid any issues that could be caused by the initiator redeeming
+	// the participant's contract with some "nonstandard" or unrecognized tx or script
 	// type.
+	// Could also do a paranoid check of the scriptSig here.
 	for _, in := range cmd.redemptionTx.TxIn {
-		pushes, err := txscript.PushedData(in.SignatureScript)
-		if err != nil {
-			return err
-		}
-		for _, push := range pushes {
-			if bytes.Equal(sha256Hash(push), cmd.secretHash) {
-				fmt.Printf("Secret: %x\n", push)
-				return nil
+		// Check the witness stack
+		for _, w := range in.Witness {
+			// fast path
+			// check items on the witness stack
+			if len(w) == SecretKeySize {
+				if bytes.Equal(sha256Hash(w), cmd.secretHash) {
+					fmt.Printf("Secret: %x\n", w)
+					return nil
+				}
 			}
 		}
+		containsSecretKey := func(b []byte) bool {
+			last := len(b) - SecretKeySize
+			for i := 0; i <= last; i++ {
+				s := b[i : i+SecretKeySize]
+				if bytes.Equal(sha256Hash(s), cmd.secretHash) {
+					fmt.Printf("Secret: %x\n", s)
+					return true
+				}
+			}
+			return false
+		}
+		// check inside longer items on witness stack
+		for _, w := range in.Witness {
+			// an item on the witness stack
+			if len(w) >= SecretKeySize {
+				if containsSecretKey(w) {
+					return nil
+				}
+			}
+		}
+		// scriptSig here
 	}
 	return errors.New("transaction does not contain the secret")
 }
@@ -1237,94 +1263,9 @@ func (cmd *auditContractCmd) runOfflineCommand() error {
 	return nil
 }
 
-// // atomicSwapContract returns an output script that may be redeemed by one of
-// // two signature scripts:
-// //
-// //	<their sig> <their pubkey> <initiator secret> 1
-// //
-// //	<my sig> <my pubkey> 0
-// //
-// // The first signature script is the normal redemption path done by the other
-// // party and requires the initiator's secret.  The second signature script is
-// // the refund path performed by us, but the refund can only be performed after
-// // locktime.
-// func atomicSwapContract(pkhMe, pkhThem *[ripemd160.Size]byte, locktime int64, secretHash []byte) ([]byte, error) {
-// 	b := txscript.NewScriptBuilder()
-
-// 	b.AddOp(txscript.OP_IF) // Normal redeem path
-// 	{
-// 		// Require initiator's secret to be a known length that the redeeming
-// 		// party can audit.  This is used to prevent fraud attacks between two
-// 		// currencies that have different maximum data sizes.
-// 		b.AddOp(txscript.OP_SIZE)
-// 		b.AddInt64(secretKeySize)
-// 		b.AddOp(txscript.OP_EQUALVERIFY)
-
-// 		// Require initiator's secret to be known to redeem the output.
-// 		b.AddOp(txscript.OP_SHA256)
-// 		b.AddData(secretHash)
-// 		b.AddOp(txscript.OP_EQUALVERIFY)
-
-// 		// Verify their signature is being used to redeem the output.  This
-// 		// would normally end with OP_EQUALVERIFY OP_CHECKSIG but this has been
-// 		// moved outside of the branch to save a couple bytes.
-// 		b.AddOp(txscript.OP_DUP)
-// 		b.AddOp(txscript.OP_HASH160)
-// 		b.AddData(pkhThem[:])
-// 	}
-// 	b.AddOp(txscript.OP_ELSE) // Refund path
-// 	{
-// 		// Verify locktime and drop it off the stack (which is not done by
-// 		// CLTV).
-// 		b.AddInt64(locktime)
-// 		b.AddOp(txscript.OP_CHECKLOCKTIMEVERIFY)
-// 		b.AddOp(txscript.OP_DROP)
-
-// 		// Verify our signature is being used to redeem the output.  This would
-// 		// normally end with OP_EQUALVERIFY OP_CHECKSIG but this has been moved
-// 		// outside of the branch to save a couple bytes.
-// 		b.AddOp(txscript.OP_DUP)
-// 		b.AddOp(txscript.OP_HASH160)
-// 		b.AddData(pkhMe[:])
-// 	}
-// 	b.AddOp(txscript.OP_ENDIF)
-
-// 	// Complete the signature check.
-// 	b.AddOp(txscript.OP_EQUALVERIFY)
-// 	b.AddOp(txscript.OP_CHECKSIG)
-
-// 	return b.Script()
-// }
-
-// // redeemP2SHContract returns the signature script to redeem a contract output
-// // using the redeemer's signature and the initiator's secret.  This function
-// // assumes P2SH and appends the contract as the final data push.
-// func redeemP2SHContract(contract, sig, pubkey, secret []byte) ([]byte, error) {
-// 	b := txscript.NewScriptBuilder()
-// 	b.AddData(sig)
-// 	b.AddData(pubkey)
-// 	b.AddData(secret)
-// 	b.AddInt64(1)
-// 	b.AddData(contract)
-// 	return b.Script()
-// }
-
-// // refundP2SHContract returns the signature script to refund a contract output
-// // using the contract author's signature after the locktime has been reached.
-// // This function assumes P2SH and appends the contract as the final data push.
-// func refundP2SHContract(contract, sig, pubkey []byte) ([]byte, error) {
-// 	// func refundP2SHContract(contract, sig, pubkey []byte) ([]byte, error) {
-// 	b := txscript.NewScriptBuilder()
-// 	b.AddData(sig)
-// 	b.AddData(pubkey)
-// 	b.AddInt64(0)
-// 	b.AddData(contract)
-// 	return b.Script()
-// }
-
-// ExtractSwapDetails extacts the sender and receiver addresses from a swap
-// contract. If the provided script is not a swap contract, an error will be
-// returned.
+// ExtractSwapDetails extacts the sender and receiver addresses, locktime and
+// secret hash from a swap contract. If the provided script is not a swap contract
+// an error will be returned.
 func ExtractSwapDetails(pkScript []byte, segwit bool, chainParams *chaincfg.Params) (
 	sender, receiver btcutil.Address, lockTime uint64, secretHash []byte, err error) {
 	// A swap redemption sigScript is <pubkey> <secret> and satisfies the
