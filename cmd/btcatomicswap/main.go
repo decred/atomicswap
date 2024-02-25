@@ -1,4 +1,4 @@
-// Copyright (c) 2017 The Decred developers
+// Copyright (c) 2024 The Decred developers
 // Use of this source code is governed by an ISC
 // license that can be found in the LICENSE file.
 
@@ -395,7 +395,7 @@ func walletPort(params *chaincfg.Params) string {
 // createWitnessSig creates and returns the serialized raw signature and compressed
 // pubkey for a transaction input signature.
 //
-// returns [[sig][pubkey]]
+// returns [sig][pubkey]
 //
 // Due to limitations of the Bitcoin Core RPC API, this requires dumping a private
 // key and signing in the client, rather than letting the wallet sign.
@@ -407,8 +407,6 @@ func createWitnessSig(
 	sigHashes *txscript.TxSigHashes,
 	addr btcutil.Address,
 	c *rpc.Client) ([]byte, []byte, error) {
-
-	fmt.Println("txout[0].pkscript", hex.EncodeToString(tx.TxOut[0].PkScript))
 
 	wif, err := c.DumpPrivKey(addr)
 	if err != nil {
@@ -609,9 +607,8 @@ func getFeePerKb(c *rpc.Client) (useFee, relayFee btcutil.Amount, err error) {
 // implemented manually as the rpcclient implementation always passes the
 // account parameter which was removed in Bitcoin Core 0.15.
 func getRawChangeAddress(c *rpc.Client) (btcutil.Address, error) {
+	// The default is bech32 for recent bitcoin rpc
 	rawResp, err := c.RawRequest("getrawchangeaddress", nil)
-	// params := []json.RawMessage{[]byte(`"bech32"`)}
-	// rawResp, err := c.RawRequest("getrawchangeaddress", params)
 	if err != nil {
 		return nil, err
 	}
@@ -708,7 +705,6 @@ func buildSegwitContract(c *rpc.Client, args *contractArgs) (*builtContract, err
 		return nil, err
 	}
 
-	// P2WSH Out
 	contractHash := sha256Hash(contract)
 	contractP2WSH, err := btcutil.NewAddressWitnessScriptHash(contractHash, chainParams)
 	if err != nil {
@@ -831,22 +827,10 @@ func buildRefund(c *rpc.Client, contract []byte, contractTx *wire.MsgTx, feePerK
 	}
 	refundTxWitness := RefundP2WSHContract(contract, sig, pubKey)
 
-	fmt.Println("Refund script:")
-	fmt.Println("sig", hex.EncodeToString(sig))
-	fmt.Println("pubkey", hex.EncodeToString(pubKey))
-	fmt.Println("0", hex.EncodeToString([]byte{}))
-	fmt.Println("contract", hex.EncodeToString(contract))
-
 	refundTx.TxIn[0].Witness = refundTxWitness
 
-	fmt.Println("....... refund witness .......")
-	for i, w := range refundTxWitness {
-		fmt.Printf("Witness %d: %x\n", i, w)
-	}
-	fmt.Println("..............................")
-
 	if verify {
-		// Use the Debug Stepper OR the Execute option. NOT both with same egine
+		// Use the Debug Stepper OR the Execute option. NOT both with same egine instance
 		e, err := txscript.NewDebugEngine(
 			// pubkey script
 			contractTx.TxOut[contractOutPoint.Index].PkScript,
@@ -985,17 +969,13 @@ func (cmd *participateCmd) runCommand(c *rpc.Client) error {
 func (cmd *redeemCmd) runCommand(c *rpc.Client) error {
 	fmt.Println("Redeem")
 
-	sender, receiver, locktime, secretHash, err := ExtractSwapDetails(
+	_, receiver, locktime, _, err := ExtractSwapDetails(
 		cmd.contract,
 		true, // segwit
 		chainParams)
 	if err != nil {
 		return err
 	}
-	fmt.Println(sender.String())
-	fmt.Println(receiver.String())
-	fmt.Println(locktime)
-	fmt.Println(hex.EncodeToString(secretHash))
 
 	recipientAddr, err := btcutil.NewAddressWitnessPubKeyHash(receiver.ScriptAddress(), chainParams)
 	if err != nil {
@@ -1041,18 +1021,16 @@ func (cmd *redeemCmd) runCommand(c *rpc.Client) error {
 	}
 
 	redeemTx := wire.NewMsgTx(txVersion)
-	redeemTx.LockTime = uint32(locktime)
+	redeemTx.LockTime = uint32(locktime)           //ignored?
 	redeemTx.AddTxOut(wire.NewTxOut(0, outScript)) // amount set below
 	redeemSize := estimateRedeemSerializeSize(cmd.contract, redeemTx.TxOut)
 	fee := txrules.FeeForSerializeSize(feePerKb, redeemSize)
 	redeemTx.TxOut[0].Value = cmd.contractTx.TxOut[contractOutIdx].Value - int64(fee)
-	// contractValue := redeemTx.TxOut[0].Value
 	if txrules.IsDustOutput(redeemTx.TxOut[0], minFeePerKb) {
 		return fmt.Errorf("redeem output value of %v is dust", btcutil.Amount(redeemTx.TxOut[0].Value))
 	}
 
 	redeemTx.AddTxIn(wire.NewTxIn(&contractOutPoint, nil, nil))
-	// redeemTx.TxIn[0].Sequence = 0
 	redeemTx.TxIn[0].SignatureScript = nil
 
 	// NewTxSigHashes uses the PrevOutFetcher only for detecting a taproot
@@ -1066,13 +1044,6 @@ func (cmd *redeemCmd) runCommand(c *rpc.Client) error {
 		return err
 	}
 	redeemTxWitness := RedeemP2WSHContract(cmd.contract, sig, pubKey, cmd.secret)
-
-	fmt.Println("Redeem script:")
-	fmt.Println("sig", hex.EncodeToString(sig))
-	fmt.Println("pubkey", hex.EncodeToString(pubKey))
-	fmt.Println("secret", hex.EncodeToString(cmd.secret))
-	fmt.Println("<true>", hex.EncodeToString([]byte{0x01}))
-	fmt.Println("contract", hex.EncodeToString(cmd.contract))
 
 	redeemTx.TxIn[0].Witness = redeemTxWitness
 
@@ -1117,8 +1088,6 @@ func (cmd *redeemCmd) runCommand(c *rpc.Client) error {
 	}
 
 	return promptPublishTx(c, redeemTx, "redeem")
-
-	// return nil
 }
 
 func (cmd *refundCmd) runCommand(c *rpc.Client) error {
@@ -1160,7 +1129,7 @@ func (cmd *extractSecretCmd) runOfflineCommand() error {
 		// Check the witness stack
 		for _, w := range in.Witness {
 			// fast path
-			// check items on the witness stack
+			// check items of the correct length on the witness stack
 			if len(w) == SecretKeySize {
 				if bytes.Equal(sha256Hash(w), cmd.secretHash) {
 					fmt.Printf("Secret: %x\n", w)
@@ -1491,7 +1460,7 @@ func stepDebugScript(e *txscript.Engine) {
 				}
 				if i > 0 {
 					stkerr = true
-					stkerrtxt += " too many stack items"
+					stkerrtxt += " too many stack items left on stack"
 				}
 			}
 			if stkerr {
