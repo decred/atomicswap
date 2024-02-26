@@ -33,7 +33,7 @@ import (
 
 // run script verifier
 const verify = true
-const stepDbg = true
+const stepDbg = false
 
 const txVersion = 2
 
@@ -803,17 +803,20 @@ func buildRefund(c *rpc.Client, contract []byte, contractTx *wire.MsgTx, feePerK
 
 	refundTx = wire.NewMsgTx(txVersion)
 	refundTx.LockTime = uint32(locktime)
-	refundTx.AddTxOut(wire.NewTxOut(0, refundOutScript)) // amount set below
-	refundSize := estimateRefundSerializeSize(contract, refundTx.TxOut)
-	refundFee = txrules.FeeForSerializeSize(feePerKb, refundSize)
-	refundTx.TxOut[0].Value = contractTx.TxOut[contractOutPoint.Index].Value - int64(refundFee)
-	if txrules.IsDustOutput(refundTx.TxOut[0], minFeePerKb) {
-		return nil, 0, fmt.Errorf("refund output value of %v is dust", btcutil.Amount(refundTx.TxOut[0].Value))
-	}
-
+	// prepare single tx input
 	refundTx.AddTxIn(wire.NewTxIn(&contractOutPoint, nil, nil))
 	refundTx.TxIn[0].Sequence = 0
 	refundTx.TxIn[0].SignatureScript = nil
+	// with input but no output yet get vsize & fee
+	refundSize := refundTxSerialSizeEst(refundTx)
+	refundFee = txrules.FeeForSerializeSize(feePerKb, refundSize)
+	// now add the single output
+	refundTx.AddTxOut(wire.NewTxOut(0, refundOutScript))
+	refundTx.TxOut[0].Value = contractTx.TxOut[contractOutPoint.Index].Value - int64(refundFee)
+	// check dust
+	if txrules.IsDustOutput(refundTx.TxOut[0], minFeePerKb) {
+		return nil, 0, fmt.Errorf("refund output value of %v is dust", btcutil.Amount(refundTx.TxOut[0].Value))
+	}
 
 	// NewTxSigHashes uses the PrevOutFetcher only for detecting a taproot
 	// output, so we can provide a dummy that always returns a wire.TxOut
@@ -843,7 +846,7 @@ func buildRefund(c *rpc.Client, contract []byte, contractTx *wire.MsgTx, feePerK
 			txscript.NewTxSigHashes(refundTx, prevOutFetcher),
 			contractValue,
 			prevOutFetcher,
-			step)
+			nil)
 		if err != nil {
 			panic(err)
 		}
@@ -1021,17 +1024,20 @@ func (cmd *redeemCmd) runCommand(c *rpc.Client) error {
 	}
 
 	redeemTx := wire.NewMsgTx(txVersion)
-	redeemTx.LockTime = uint32(locktime)           //ignored?
-	redeemTx.AddTxOut(wire.NewTxOut(0, outScript)) // amount set below
-	redeemSize := estimateRedeemSerializeSize(cmd.contract, redeemTx.TxOut)
+	// prepare single tx input
+	redeemTx.LockTime = uint32(locktime) //ignored?
+	redeemTx.AddTxIn(wire.NewTxIn(&contractOutPoint, nil, nil))
+	redeemTx.TxIn[0].SignatureScript = nil
+	// with input but no output yet get vsize & fee
+	redeemSize := redeemTxSerialSizeEst(redeemTx)
 	fee := txrules.FeeForSerializeSize(feePerKb, redeemSize)
+	// now add the single output
+	redeemTx.AddTxOut(wire.NewTxOut(0, outScript))
 	redeemTx.TxOut[0].Value = cmd.contractTx.TxOut[contractOutIdx].Value - int64(fee)
+	// check dust
 	if txrules.IsDustOutput(redeemTx.TxOut[0], minFeePerKb) {
 		return fmt.Errorf("redeem output value of %v is dust", btcutil.Amount(redeemTx.TxOut[0].Value))
 	}
-
-	redeemTx.AddTxIn(wire.NewTxIn(&contractOutPoint, nil, nil))
-	redeemTx.TxIn[0].SignatureScript = nil
 
 	// NewTxSigHashes uses the PrevOutFetcher only for detecting a taproot
 	// output, so we can provide a dummy that always returns a wire.TxOut
@@ -1072,7 +1078,7 @@ func (cmd *redeemCmd) runCommand(c *rpc.Client) error {
 			txscript.NewTxSigHashes(redeemTx, prevOutFetcher),
 			contractValue,
 			prevOutFetcher,
-			step)
+			nil)
 		if err != nil {
 			panic(err)
 		}
@@ -1124,7 +1130,6 @@ func (cmd *extractSecretCmd) runOfflineCommand() error {
 	// We also try to avoid any issues that could be caused by the initiator redeeming
 	// the participant's contract with some "nonstandard" or unrecognized tx or script
 	// type.
-	// Could also do a paranoid check of the scriptSig here.
 	for _, in := range cmd.redemptionTx.TxIn {
 		// Check the witness stack
 		for _, w := range in.Witness {
@@ -1157,7 +1162,6 @@ func (cmd *extractSecretCmd) runOfflineCommand() error {
 				}
 			}
 		}
-		// scriptSig here
 	}
 	return errors.New("transaction does not contain the secret")
 }
@@ -1473,14 +1477,4 @@ func stepDebugScript(e *txscript.Engine) {
 			break
 		}
 	}
-}
-
-func step(s *txscript.StepInfo) error {
-	fmt.Printf("ScriptIndex %d\n", s.ScriptIndex)
-	fmt.Printf("OpcodeIndex %d\n", s.OpcodeIndex)
-	fmt.Println("Stack:")
-	for _, item := range s.Stack {
-		fmt.Println(hex.EncodeToString(item))
-	}
-	return nil
 }
