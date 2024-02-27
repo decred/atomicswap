@@ -33,7 +33,6 @@ import (
 
 // run script verifier
 const verify = true
-const stepDbg = false
 
 const txVersion = 2
 
@@ -629,7 +628,6 @@ func getRawChangeAddress(c *rpc.Client) (btcutil.Address, error) {
 		return nil, fmt.Errorf("getrawchangeaddress: address %v is not P2WPKH",
 			addr)
 	}
-	fmt.Println("getrawchangeaddress bech32", addr.String())
 	return addr, nil
 }
 
@@ -833,8 +831,7 @@ func buildRefund(c *rpc.Client, contract []byte, contractTx *wire.MsgTx, feePerK
 	refundTx.TxIn[0].Witness = refundTxWitness
 
 	if verify {
-		// Use the Debug Stepper OR the Execute option. NOT both with same egine instance
-		e, err := txscript.NewDebugEngine(
+		e, err := txscript.NewEngine(
 			// pubkey script
 			contractTx.TxOut[contractOutPoint.Index].PkScript,
 			// refund transaction
@@ -845,19 +842,13 @@ func buildRefund(c *rpc.Client, contract []byte, contractTx *wire.MsgTx, feePerK
 			txscript.NewSigCache(10),
 			txscript.NewTxSigHashes(refundTx, prevOutFetcher),
 			contractValue,
-			prevOutFetcher,
-			nil)
+			prevOutFetcher)
 		if err != nil {
 			panic(err)
 		}
-		if stepDbg {
-			stepDebugScript(e)
-		} else {
-			err = e.Execute()
-			if err != nil {
-				fmt.Printf("Engine Error: %v\n", err)
-				os.Exit(1)
-			}
+		err = e.Execute()
+		if err != nil {
+			panic(err)
 		}
 	}
 
@@ -970,8 +961,6 @@ func (cmd *participateCmd) runCommand(c *rpc.Client) error {
 }
 
 func (cmd *redeemCmd) runCommand(c *rpc.Client) error {
-	fmt.Println("Redeem")
-
 	_, receiver, locktime, _, err := ExtractSwapDetails(
 		cmd.contract,
 		true, // segwit
@@ -1065,8 +1054,7 @@ func (cmd *redeemCmd) runCommand(c *rpc.Client) error {
 	fmt.Printf("%x\n\n", buf.Bytes())
 
 	if verify {
-		// Use the Debug Stepper OR the Execute option. NOT both with same engine instance
-		e, err := txscript.NewDebugEngine(
+		e, err := txscript.NewEngine(
 			// pubkey script
 			cmd.contractTx.TxOut[contractOutPoint.Index].PkScript,
 			// refund transaction
@@ -1077,19 +1065,14 @@ func (cmd *redeemCmd) runCommand(c *rpc.Client) error {
 			txscript.NewSigCache(10),
 			txscript.NewTxSigHashes(redeemTx, prevOutFetcher),
 			contractValue,
-			prevOutFetcher,
-			nil)
+			prevOutFetcher)
 		if err != nil {
 			panic(err)
 		}
-		if stepDbg {
-			stepDebugScript(e)
-		} else {
-			err = e.Execute()
-			if err != nil {
-				fmt.Printf("Engine Error: %v\n", err)
-				os.Exit(1)
-			}
+
+		err = e.Execute()
+		if err != nil {
+			panic(err)
 		}
 	}
 
@@ -1406,75 +1389,5 @@ func RedeemP2WSHContract(contract, sig, pubkey, secret []byte) [][]byte {
 		secret,
 		{0x01},
 		contract,
-	}
-}
-
-func stepDebugScript(e *txscript.Engine) {
-	fmt.Println("Script 0")
-	fmt.Println(e.DisasmScript(0))
-	fmt.Println("Script 1")
-	fmt.Println(e.DisasmScript(1))
-	fmt.Printf("End Scripts\n============\n\n")
-
-	for {
-		fmt.Println("---------------------------- STACK --------------------------")
-		stk := e.GetStack()
-		for i, item := range stk {
-			if len(item) > 0 {
-				fmt.Printf("%d %v\n", i, hex.EncodeToString(item))
-			} else {
-				fmt.Printf("%d %s\n", i, "<null>")
-			}
-		}
-		fmt.Println("-------------------------- ALT STACK ------------------------")
-		astk := e.GetAltStack()
-		for i, item := range astk {
-			if len(item) > 0 {
-				fmt.Printf("%d %v\n", i, hex.EncodeToString(item))
-			} else {
-				fmt.Printf("%d %s\n", i, "<null>")
-			}
-		}
-		fmt.Println("--------------------------- Next Op -------------------------")
-		fmt.Println(e.DisasmPC())
-		fmt.Println("===========")
-		script, err := e.DisasmScript(2)
-		if err == nil {
-			fmt.Printf("script 2: \n%s\n", script)
-		}
-		fmt.Println("..........")
-
-		// STEP
-		done, err := e.Step()
-		if err != nil {
-			fmt.Printf("Engine Error: %v\n", err)
-			os.Exit(2)
-		}
-
-		if done {
-			fmt.Println("----------------------- Last STACK ------------------------")
-			stkerr := false
-			stkerrtxt := ""
-			stk = e.GetStack()
-			for i, item := range stk {
-				fmt.Println(i, hex.EncodeToString(item))
-				if i == 0 && !bytes.Equal(item, []byte{0x01}) {
-					stkerr = true
-					stkerrtxt += "ToS Not '1'"
-				}
-				if i > 0 {
-					stkerr = true
-					stkerrtxt += " too many stack items left on stack"
-				}
-			}
-			if stkerr {
-				fmt.Println(stkerrtxt)
-				os.Exit(3)
-			}
-			fmt.Println("--------------------- End Last STACK ------------------------")
-
-			// senang
-			break
-		}
 	}
 }
