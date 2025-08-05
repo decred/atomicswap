@@ -74,16 +74,16 @@ var (
 // transaction on the other chain.  Any chain can be used so long as it supports
 // OP_SHA256 and OP_CHECKLOCKTIMEVERIFY.
 //
-// Example scenerios using bitcoin as the second chain:
+// Example scenarios using bitcoin as the second chain:
 //
-// Scenerio 1:
+// Scenario 1:
 //   cp1 initiates (dcr)
 //   cp2 participates with cp1 H(S) (btc)
 //   cp1 redeems btc revealing S
 //     - must verify H(S) in contract is hash of known secret
 //   cp2 redeems dcr with S
 //
-// Scenerio 2:
+// Scenario 2:
 //   cp1 initiates (btc)
 //   cp2 participates with cp1 H(S) (dcr)
 //   cp1 redeems dcr revealing S
