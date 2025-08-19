@@ -19,6 +19,7 @@ exists for the following coins and wallets:
 * Vertcoin ([Vertcoin Core](https://github.com/vertcoin/vertcoin))
 * Viacoin ([Viacoin Core](https://github.com/viacoin/viacoin))
 * Zcoin ([Zcoin Core](https://github.com/zcoinofficial/zcoin))
+* XSN ([XSN Core](https://github.com/X9Developers/XSN))
 
 External support exists for the following coins and wallets:
 
