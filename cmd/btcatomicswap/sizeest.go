@@ -35,6 +35,25 @@ const (
 	//   - 33 bytes serialized compressed pubkey
 	//   - OP_FALSE
 	refundAtomicSwapSigScriptSize = 1 + 73 + 1 + 33 + 1
+
+	// redeemPrivateAtomicSwapWitnessSize is the worst case (largest) serialize
+	// size of a transaction witness for redeeming a private atomic swap.
+	//
+	// - Num elements (1 byte)
+	// - Signature 1 (1 + 64 bytes)
+	// - Signature 2 (1 + 64 bytes)
+	// - Redeem script (1 + 68 bytes)
+	// - Control block (1 + 65 bytes)
+	redeemPrivateAtomicSwapWitnessSize = 1 + 1 + 64 + 1 + 64 + 1 + 68 + 1 + 65 // 266
+
+	// refundPrivateAtomicSwapWitnessSize is the worst case (largest) serialize
+	// size of a transaction witness for refunding a private atomic swap.
+	//
+	// - Num elements (1 byte)
+	// - Signature (1 + 64 bytes)
+	// - Refund script (1 + 41 bytes)
+	// - Control block (1 + 65 bytes)
+	refundPrivateAtomicSwapWitnessSize = 1 + 1 + 64 + 1 + 41 + 1 + 65 // 174
 )
 
 func sumOutputSerializeSizes(outputs []*wire.TxOut) (serializeSize int) {
@@ -87,5 +106,25 @@ func estimateRefundSerializeSize(contract []byte, txOuts []*wire.TxOut) int {
 	return 12 + wire.VarIntSerializeSize(1) +
 		wire.VarIntSerializeSize(uint64(len(txOuts))) +
 		inputSize(refundAtomicSwapSigScriptSize+contractPushSize) +
+		sumOutputSerializeSizes(txOuts)
+}
+
+// estimatePrivateRedeemSerializeSize returns a worst case serialize size
+// estimates for a transaction that redeems a private atomic swap P2TR output.
+func estimatePrivateRedeemSerializeSize(txOuts []*wire.TxOut) int {
+	// 12 additional bytes are for version, locktime and expiry.
+	return 12 + wire.VarIntSerializeSize(1) +
+		wire.VarIntSerializeSize(uint64(len(txOuts))) +
+		inputSize((redeemPrivateAtomicSwapWitnessSize+3)/4) +
+		sumOutputSerializeSizes(txOuts)
+}
+
+// estimatePrivateRefundSerializeSize returns a worst case serialize size
+// estimates for a transaction that refunds a private atomic swap P2TR output.
+func estimatePrivateRefundSerializeSize(txOuts []*wire.TxOut) int {
+	// 12 additional bytes are for version, locktime and expiry.
+	return 12 + wire.VarIntSerializeSize(1) +
+		wire.VarIntSerializeSize(uint64(len(txOuts))) +
+		inputSize((refundPrivateAtomicSwapWitnessSize+3)/4) +
 		sumOutputSerializeSizes(txOuts)
 }

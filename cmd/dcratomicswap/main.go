@@ -12,11 +12,11 @@ import (
 	"crypto/sha256"
 	"crypto/tls"
 	"crypto/x509"
+	"encoding/binary"
 	"encoding/hex"
 	"errors"
 	"flag"
 	"fmt"
-	"io/ioutil"
 	"net"
 	"os"
 	"path/filepath"
@@ -24,16 +24,24 @@ import (
 	"strings"
 	"time"
 
-	pb "decred.org/dcrwallet/rpc/walletrpc"
-	"decred.org/dcrwallet/wallet/txrules"
+	pb "decred.org/dcrwallet/v3/rpc/walletrpc"
+	"decred.org/dcrwallet/v3/wallet/txrules"
+	"github.com/decred/atomicswap/cmd/dcratomicswap/adaptor"
 	"github.com/decred/dcrd/chaincfg/chainhash"
 	"github.com/decred/dcrd/chaincfg/v3"
 	"github.com/decred/dcrd/dcrec"
-	"github.com/decred/dcrd/dcrutil/v3"
-	"github.com/decred/dcrd/txscript/v3"
-	"github.com/decred/dcrd/wire"
+	"github.com/decred/dcrd/dcrec/secp256k1/v4"
+	"github.com/decred/dcrd/dcrec/secp256k1/v4/schnorr"
+	"github.com/decred/dcrd/dcrutil/v4"
 	"golang.org/x/crypto/ripemd160"
 	"golang.org/x/crypto/ssh/terminal"
+
+	"github.com/decred/dcrd/txscript/v4"
+	"github.com/decred/dcrd/txscript/v4/sign"
+	"github.com/decred/dcrd/txscript/v4/stdaddr"
+	"github.com/decred/dcrd/txscript/v4/stdscript"
+
+	"github.com/decred/dcrd/wire"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 )
@@ -66,6 +74,7 @@ var (
 	clientCertFlag = flagset.String("clientcert", "", "path to client authentication certificate")
 	clientKeyFlag  = flagset.String("clientkey", "", "path to client authentication key")
 	testnetFlag    = flagset.Bool("testnet", false, "use testnet network")
+	simnetFlag     = flagset.Bool("simnet", false, "use simnet network")
 )
 
 // There are two directions that the atomic swap can be performed, as the
@@ -102,6 +111,14 @@ func init() {
 		fmt.Println("  extractsecret <redemption transaction> <secret hash>")
 		fmt.Println("  auditcontract <contract> <contract transaction>")
 		fmt.Println()
+		fmt.Println("Private swap commands:")
+		fmt.Println("  lockfunds <counterparty address> <amount> <initiator>")
+		fmt.Println("  unsignedredemption <counterparty contract> <counterparty tx>")
+		fmt.Println("  initiateadaptor <our lock contract> <our lock tx> <counterparty unsigned redeem tx>")
+		fmt.Println("  verifyadaptor <counterparty contract> <counterparty adaptor sig> <counterparty pub key> <our unsigned redeem tx>")
+		fmt.Println("  participateadaptor <our lock contract> <our lock tx> <counterparty adaptor> <counterparty unsigned redeem>")
+		fmt.Println("  privateredeem <counterparty contract> <counterparty lock tx> <counterparty adaptor> <counterparty pub key> <our unsigned redemption> <tweak>")
+		fmt.Println("  extracttweak <counterparty redemption tx> <our adaptor sig>")
 		fmt.Println("Flags:")
 		flagset.PrintDefaults()
 	}
@@ -118,12 +135,12 @@ type offlineCommand interface {
 }
 
 type initiateCmd struct {
-	cp2Addr dcrutil.Address
+	cp2Addr *stdaddr.AddressPubKeyHashEcdsaSecp256k1V0
 	amount  dcrutil.Amount
 }
 
 type participateCmd struct {
-	cp1Addr    dcrutil.Address
+	cp1Addr    *stdaddr.AddressPubKeyHashEcdsaSecp256k1V0
 	amount     dcrutil.Amount
 	secretHash []byte
 }
@@ -147,6 +164,58 @@ type extractSecretCmd struct {
 type auditContractCmd struct {
 	contract   []byte
 	contractTx *wire.MsgTx
+}
+
+// The following commands are used for private swaps.
+
+type lockFundsCmd struct {
+	cpAddr    *stdaddr.AddressPubKeyHashEcdsaSecp256k1V0
+	amount    dcrutil.Amount
+	initiator bool
+}
+
+type unsignedRedemptionCmd struct {
+	cpContract []byte
+	cpLockTx   *wire.MsgTx
+}
+
+type initiateAdaptorCmd struct {
+	ourContract        []byte
+	ourLockTx          *wire.MsgTx
+	cpUnsignedRedeemTx *wire.MsgTx
+}
+
+type verifyAdaptorCmd struct {
+	cpContract        []byte
+	cpAdaptorSig      *adaptor.AdaptorSignature
+	cpPubKey          *secp256k1.PublicKey
+	ourUnsignedRedeem *wire.MsgTx
+}
+
+type participateAdaptorCmd struct {
+	ourContract          []byte
+	ourLockTx            *wire.MsgTx
+	cpAdaptor            *adaptor.AdaptorSignature
+	cpUnsignedRedemption *wire.MsgTx
+}
+
+type privateRedeemCmd struct {
+	cpContract         []byte
+	cpLockTx           *wire.MsgTx
+	cpAdaptor          *adaptor.AdaptorSignature
+	cpPubKey           *secp256k1.PublicKey
+	unsignedRedemption *wire.MsgTx
+	tweak              *secp256k1.ModNScalar
+}
+
+type extractTweakCmd struct {
+	cpRedeemTx *wire.MsgTx
+	ourAdaptor *adaptor.AdaptorSignature
+}
+
+type auditPrivateContractCmd struct {
+	cpContract []byte
+	cpLockTx   *wire.MsgTx
 }
 
 func main() {
@@ -174,6 +243,27 @@ func checkCmdArgLength(args []string, required int) (nArgs int) {
 	return required
 }
 
+func parseTx(s string) (*wire.MsgTx, error) {
+	txB, err := hex.DecodeString(s)
+	if err != nil {
+		return nil, fmt.Errorf("failed to decode transaction: %v", err)
+	}
+	var tx wire.MsgTx
+	err = tx.Deserialize(bytes.NewReader(txB))
+	if err != nil {
+		return nil, fmt.Errorf("failed to decode transaction: %v", err)
+	}
+	return &tx, nil
+}
+
+func parseAdaptorSig(s string) (*adaptor.AdaptorSignature, error) {
+	sigB, err := hex.DecodeString(s)
+	if err != nil {
+		return nil, fmt.Errorf("failed to decode transaction: %v", err)
+	}
+	return adaptor.ParseAdaptorSignature(sigB)
+}
+
 func run() (err error, showUsage bool) {
 	flagset.Parse(os.Args[1:])
 	args := flagset.Args()
@@ -184,6 +274,8 @@ func run() (err error, showUsage bool) {
 	switch args[0] {
 	case "initiate":
 		cmdArgs = 2
+	case "redeem_private":
+		cmdArgs = 2
 	case "participate":
 		cmdArgs = 3
 	case "redeem":
@@ -193,6 +285,22 @@ func run() (err error, showUsage bool) {
 	case "extractsecret":
 		cmdArgs = 2
 	case "auditcontract":
+		cmdArgs = 2
+	case "lockfunds":
+		cmdArgs = 3
+	case "initiateadaptor":
+		cmdArgs = 3
+	case "participateadaptor":
+		cmdArgs = 4
+	case "unsignedredemption":
+		cmdArgs = 2
+	case "verifyadaptor":
+		cmdArgs = 4
+	case "privateredeem":
+		cmdArgs = 6
+	case "extracttweak":
+		cmdArgs = 2
+	case "auditprivatecontract":
 		cmdArgs = 2
 	default:
 		return fmt.Errorf("unknown command %v", args[0]), true
@@ -206,6 +314,10 @@ func run() (err error, showUsage bool) {
 		return fmt.Errorf("unexpected argument: %s", flagset.Arg(0)), true
 	}
 
+	if *simnetFlag {
+		chainParams = chaincfg.SimNetParams()
+	}
+
 	if *testnetFlag {
 		chainParams = chaincfg.TestNet3Params()
 	}
@@ -213,11 +325,11 @@ func run() (err error, showUsage bool) {
 	var cmd command
 	switch args[0] {
 	case "initiate":
-		cp2Addr, err := dcrutil.DecodeAddress(args[1], chainParams)
+		decodedAddr, err := stdaddr.DecodeAddress(args[1], chainParams)
 		if err != nil {
 			return fmt.Errorf("failed to decode participant address: %v", err), true
 		}
-		_, ok := cp2Addr.(*dcrutil.AddressPubKeyHash)
+		cp2Addr, ok := decodedAddr.(*stdaddr.AddressPubKeyHashEcdsaSecp256k1V0)
 		if !ok {
 			return errors.New("participant address is not P2PKH"), true
 		}
@@ -234,11 +346,11 @@ func run() (err error, showUsage bool) {
 		cmd = &initiateCmd{cp2Addr: cp2Addr, amount: amount}
 
 	case "participate":
-		cp1Addr, err := dcrutil.DecodeAddress(args[1], chainParams)
+		decodedAddr, err := stdaddr.DecodeAddress(args[1], chainParams)
 		if err != nil {
 			return fmt.Errorf("failed to decode initiator address: %v", err), true
 		}
-		_, ok := cp1Addr.(*dcrutil.AddressPubKeyHash)
+		cp1Addr, ok := decodedAddr.(*stdaddr.AddressPubKeyHashEcdsaSecp256k1V0)
 		if !ok {
 			return errors.New("initiator address is not P2PKH"), true
 		}
@@ -341,6 +453,211 @@ func run() (err error, showUsage bool) {
 		}
 
 		cmd = &auditContractCmd{contract: contract, contractTx: &contractTx}
+
+		// The following commands are used for private swaps
+
+	case "lockfunds":
+		decodedAddr, err := stdaddr.DecodeAddress(args[1], chainParams)
+		if err != nil {
+			return fmt.Errorf("failed to decode initiator address: %v", err), true
+		}
+		cpAddr, ok := decodedAddr.(*stdaddr.AddressPubKeyHashEcdsaSecp256k1V0)
+		if !ok {
+			return errors.New("initiator address is not P2PKH"), true
+		}
+
+		amountF64, err := strconv.ParseFloat(args[2], 64)
+		if err != nil {
+			return fmt.Errorf("failed to decode amount: %v", err), true
+		}
+		amount, err := dcrutil.NewAmount(amountF64)
+		if err != nil {
+			return err, true
+		}
+
+		initiator, err := strconv.ParseBool(args[3])
+		if err != nil {
+			return fmt.Errorf("failed to decode initiator: %v", err), true
+		}
+
+		cmd = &lockFundsCmd{
+			cpAddr:    cpAddr,
+			amount:    amount,
+			initiator: initiator,
+		}
+	case "initiateadaptor":
+		ourContract, err := hex.DecodeString(args[1])
+		if err != nil {
+			return fmt.Errorf("failed to decode contract: %v", err), true
+		}
+
+		ourLockTx, err := parseTx(args[2])
+		if err != nil {
+			return err, true
+		}
+
+		cpUnsignedRedeem, err := parseTx(args[3])
+		if err != nil {
+			return err, true
+		}
+
+		cmd = &initiateAdaptorCmd{
+			ourContract:        ourContract,
+			ourLockTx:          ourLockTx,
+			cpUnsignedRedeemTx: cpUnsignedRedeem,
+		}
+
+	case "verifyadaptor":
+		cpContract, err := hex.DecodeString(args[1])
+		if err != nil {
+			return fmt.Errorf("failed to decode contract: %v", err), true
+		}
+
+		cpAdaptor, err := parseAdaptorSig(args[2])
+		if err != nil {
+			return err, true
+		}
+
+		cpPubKeyB, err := hex.DecodeString(args[3])
+		if err != nil {
+			return fmt.Errorf("failed to decode contract transaction: %v", err), true
+		}
+		cpPubKey, err := secp256k1.ParsePubKey(cpPubKeyB)
+		if err != nil {
+			return fmt.Errorf("parse pub key: %v", err), true
+		}
+
+		ourUnsignedRedeem, err := parseTx(args[4])
+		if err != nil {
+			return err, true
+		}
+
+		cmd = &verifyAdaptorCmd{
+			cpContract:        cpContract,
+			cpAdaptorSig:      cpAdaptor,
+			cpPubKey:          cpPubKey,
+			ourUnsignedRedeem: ourUnsignedRedeem,
+		}
+	case "participateadaptor":
+		ourContract, err := hex.DecodeString(args[1])
+		if err != nil {
+			return fmt.Errorf("failed to decode contract: %v", err), true
+		}
+
+		ourLockTx, err := parseTx(args[2])
+		if err != nil {
+			return err, true
+		}
+
+		cpAdaptor, err := parseAdaptorSig(args[3])
+		if err != nil {
+			return err, true
+		}
+
+		cpUnsignedRedeem, err := parseTx(args[4])
+		if err != nil {
+			return err, true
+		}
+
+		cmd = &participateAdaptorCmd{
+			cpAdaptor:            cpAdaptor,
+			ourLockTx:            ourLockTx,
+			ourContract:          ourContract,
+			cpUnsignedRedemption: cpUnsignedRedeem,
+		}
+	case "unsignedredemption":
+		cpContract, err := hex.DecodeString(args[1])
+		if err != nil {
+			return fmt.Errorf("failed to decode contract: %v", err), true
+		}
+
+		cpLockTx, err := parseTx(args[2])
+		if err != nil {
+			return err, true
+		}
+
+		cmd = &unsignedRedemptionCmd{
+			cpContract: cpContract,
+			cpLockTx:   cpLockTx,
+		}
+
+	case "privateredeem":
+		cpContract, err := hex.DecodeString(args[1])
+		if err != nil {
+			return fmt.Errorf("failed to decode contract: %v", err), true
+		}
+
+		cpLockTx, err := parseTx(args[2])
+		if err != nil {
+			return err, true
+		}
+
+		cpAdaptor, err := parseAdaptorSig(args[3])
+		if err != nil {
+			return err, true
+		}
+
+		cpPubKeyB, err := hex.DecodeString(args[4])
+		if err != nil {
+			return err, true
+		}
+		cpPubKey, err := secp256k1.ParsePubKey(cpPubKeyB)
+		if err != nil {
+			return fmt.Errorf("parse pub key: %v", err), true
+		}
+
+		unsignedRedemption, err := parseTx(args[5])
+		if err != nil {
+			return err, true
+		}
+
+		tweakBytes, err := hex.DecodeString(args[6])
+		if err != nil {
+			return fmt.Errorf("failed to decode contract transaction: %v", err), true
+		}
+		var tweakBuf [32]byte
+		copy(tweakBuf[:], tweakBytes)
+		var tweak secp256k1.ModNScalar
+		tweak.SetBytes(&tweakBuf)
+
+		cmd = &privateRedeemCmd{
+			cpContract:         cpContract,
+			cpLockTx:           cpLockTx,
+			cpAdaptor:          cpAdaptor,
+			cpPubKey:           cpPubKey,
+			tweak:              &tweak,
+			unsignedRedemption: unsignedRedemption,
+		}
+	case "extracttweak":
+		cpRedeemTx, err := parseTx(args[1])
+		if err != nil {
+			return err, true
+		}
+
+		ourAdaptor, err := parseAdaptorSig(args[2])
+		if err != nil {
+			return err, true
+		}
+
+		cmd = &extractTweakCmd{
+			cpRedeemTx: cpRedeemTx,
+			ourAdaptor: ourAdaptor,
+		}
+	case "auditprivatecontract":
+		cpContract, err := hex.DecodeString(args[1])
+		if err != nil {
+			return fmt.Errorf("failed to decode contract: %v", err), true
+		}
+
+		cpLockTx, err := parseTx(args[2])
+		if err != nil {
+			return err, true
+		}
+
+		cmd = &auditPrivateContractCmd{
+			cpContract: cpContract,
+			cpLockTx:   cpLockTx,
+		}
 	}
 
 	// Offline commands don't need to talk to the wallet.
@@ -362,10 +679,11 @@ func run() (err error, showUsage bool) {
 		return fmt.Errorf("open client keypair: %v", err), false
 	}
 	tc := &tls.Config{
-		Certificates: []tls.Certificate{keypair},
-		RootCAs:      x509.NewCertPool(),
+		Certificates:       []tls.Certificate{keypair},
+		RootCAs:            x509.NewCertPool(),
+		InsecureSkipVerify: true,
 	}
-	serverCAs, err := ioutil.ReadFile(*certFlag)
+	serverCAs, err := os.ReadFile(*certFlag)
 	if err != nil {
 		help := *certFlag == ""
 		return fmt.Errorf("cannot open server certificate: %v", err), help
@@ -449,17 +767,24 @@ func promptPublishTx(ctx context.Context, c pb.WalletServiceClient, tx []byte, n
 // contractArgs specifies the common parameters used to create the initiator's
 // and participant's contract.
 type contractArgs struct {
-	them       dcrutil.Address
+	them       *stdaddr.AddressPubKeyHashEcdsaSecp256k1V0
 	amount     dcrutil.Amount
 	locktime   int64
 	secretHash []byte
+}
+
+type privateContractArgs struct {
+	us       *stdaddr.AddressPubKeyHashEcdsaSecp256k1V0
+	them     *stdaddr.AddressPubKeyHashEcdsaSecp256k1V0
+	amount   dcrutil.Amount
+	locktime int64
 }
 
 // builtContract houses the details regarding a contract and the contract
 // payment transaction, as well as the transaction to perform a refund.
 type builtContract struct {
 	contract       []byte
-	contractP2SH   dcrutil.Address
+	contractP2SH   stdaddr.Address
 	contractTxHash *chainhash.Hash
 	contractTx     *wire.MsgTx
 	contractFee    dcrutil.Amount
@@ -481,11 +806,12 @@ func buildContract(ctx context.Context, c pb.WalletServiceClient, args *contract
 	if err != nil {
 		return nil, err
 	}
-	refundAddr, err := dcrutil.DecodeAddress(nar.Address, chainParams)
+	addr, err := stdaddr.DecodeAddress(nar.Address, chainParams)
 	if err != nil {
 		return nil, err
 	}
-	if _, ok := refundAddr.(*dcrutil.AddressPubKeyHash); !ok {
+	refundAddr, ok := addr.(*stdaddr.AddressPubKeyHashEcdsaSecp256k1V0)
+	if !ok {
 		return nil, fmt.Errorf("NextAddress: address %v is not P2PKH", refundAddr)
 	}
 
@@ -494,21 +820,18 @@ func buildContract(ctx context.Context, c pb.WalletServiceClient, args *contract
 	if err != nil {
 		return nil, err
 	}
-	contractP2SH, err := dcrutil.NewAddressScriptHash(contract, chainParams)
-	if err != nil {
-		return nil, err
-	}
-	contractP2SHPkScript, err := txscript.PayToAddrScript(contractP2SH)
+	contractP2SH, err := stdaddr.NewAddressScriptHash(0, contract, chainParams)
 	if err != nil {
 		return nil, err
 	}
 
+	scriptVersion, contractP2SHPkScript := contractP2SH.PaymentScript()
 	ctr, err := c.ConstructTransaction(ctx, &pb.ConstructTransactionRequest{
 		SourceAccount: 0, // TODO
 		NonChangeOutputs: []*pb.ConstructTransactionRequest_Output{{
 			Destination: &pb.ConstructTransactionRequest_OutputDestination{
 				Script:        contractP2SHPkScript,
-				ScriptVersion: 0,
+				ScriptVersion: uint32(scriptVersion),
 			},
 			Amount: int64(args.amount),
 		}},
@@ -553,15 +876,11 @@ func buildRefund(ctx context.Context, c pb.WalletServiceClient, contract []byte,
 	feePerKb dcrutil.Amount, passphrase []byte) (
 	refundTx *wire.MsgTx, refundFee dcrutil.Amount, err error) {
 
-	contractP2SH, err := dcrutil.NewAddressScriptHash(contract, chainParams)
+	contractP2SH, err := stdaddr.NewAddressScriptHash(0, contract, chainParams)
 	if err != nil {
 		return nil, 0, err
 	}
-	contractP2SHPkScript, err := txscript.PayToAddrScript(contractP2SH)
-	if err != nil {
-		return nil, 0, err
-	}
-
+	_, contractP2SHPkScript := contractP2SH.PaymentScript()
 	contractTxHash := contractTx.TxHash()
 	contractOutPoint := wire.OutPoint{Hash: contractTxHash, Index: ^uint32(0)}
 	for i, o := range contractTx.TxOut {
@@ -582,23 +901,18 @@ func buildRefund(ctx context.Context, c pb.WalletServiceClient, contract []byte,
 	if err != nil {
 		return nil, 0, err
 	}
-	refundAddress, err := dcrutil.DecodeAddress(nar.Address, chainParams)
+	refundAddress, err := stdaddr.DecodeAddress(nar.Address, chainParams)
 	if err != nil {
 		return nil, 0, err
 	}
-	refundOutScript, err := txscript.PayToAddrScript(refundAddress)
-	if err != nil {
-		return nil, 0, err
-	}
-
-	pushes, err := txscript.ExtractAtomicSwapDataPushes(0, contract)
-	if err != nil {
+	_, refundOutScript := refundAddress.PaymentScript()
+	pushes := stdscript.ExtractAtomicSwapDataPushesV0(contract)
+	if pushes == nil {
 		// expected to only be called with good input
-		panic(err)
+		panic("invalid atomic swap contract")
 	}
 
-	refundAddr, err := dcrutil.NewAddressPubKeyHash(pushes.RefundHash160[:], chainParams,
-		dcrec.STEcdsaSecp256k1)
+	refundAddr, err := stdaddr.NewAddressPubKeyHashEcdsaSecp256k1(0, pushes.RefundHash160[:], chainParams)
 	if err != nil {
 		return nil, 0, err
 	}
@@ -607,11 +921,9 @@ func buildRefund(ctx context.Context, c pb.WalletServiceClient, contract []byte,
 	refundTx.LockTime = uint32(pushes.LockTime)
 	refundTx.AddTxOut(wire.NewTxOut(0, refundOutScript)) // amount set below
 	refundSize := estimateRefundSerializeSize(contract, refundTx.TxOut)
-	refundFee = txrules.FeeForSerializeSize(feePerKb, refundSize)
+
+	refundFee = dcrutil.Amount(feePerKb * dcrutil.Amount(refundSize) / 1000)
 	refundTx.TxOut[0].Value = contractTx.TxOut[contractOutPoint.Index].Value - int64(refundFee)
-	if txrules.IsDustOutput(refundTx.TxOut[0], feePerKb) {
-		return nil, 0, fmt.Errorf("refund output value of %v is dust", dcrutil.Amount(refundTx.TxOut[0].Value))
-	}
 
 	txIn := wire.NewTxIn(&contractOutPoint, 0, nil)
 	txIn.Sequence = 0
@@ -623,7 +935,7 @@ func buildRefund(ctx context.Context, c pb.WalletServiceClient, contract []byte,
 
 	refundSig, err := c.CreateSignature(ctx, &pb.CreateSignatureRequest{
 		Passphrase:            passphrase,
-		Address:               refundAddr.Address(),
+		Address:               refundAddr.String(),
 		SerializedTransaction: buf.Bytes(),
 		InputIndex:            0,
 		HashType:              pb.CreateSignatureRequest_SIGHASH_ALL,
@@ -653,6 +965,161 @@ func buildRefund(ctx context.Context, c pb.WalletServiceClient, contract []byte,
 		err = e.Execute()
 		if err != nil {
 			panic(err)
+		}
+	}
+
+	return refundTx, refundFee, nil
+}
+
+func buildPrivateContract(ctx context.Context, c pb.WalletServiceClient, args *privateContractArgs, passphrase []byte) (*builtContract, error) {
+	contract, err := privateAtomicSwapContract(*args.us.Hash160(), *args.them.Hash160(), args.locktime)
+	if err != nil {
+		return nil, err
+	}
+
+	contractP2SH, err := stdaddr.NewAddressScriptHash(0, contract, chainParams)
+	if err != nil {
+		return nil, err
+	}
+	scriptVer, contractP2SHPkScript := contractP2SH.PaymentScript()
+	ctr, err := c.ConstructTransaction(ctx, &pb.ConstructTransactionRequest{
+		SourceAccount: 0, // TODO
+		NonChangeOutputs: []*pb.ConstructTransactionRequest_Output{{
+			Destination: &pb.ConstructTransactionRequest_OutputDestination{
+				Script:        contractP2SHPkScript,
+				ScriptVersion: uint32(scriptVer),
+			},
+			Amount: int64(args.amount),
+		}},
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	contractFee := dcrutil.Amount(ctr.TotalPreviousOutputAmount - ctr.TotalOutputAmount)
+	str, err := c.SignTransaction(ctx, &pb.SignTransactionRequest{
+		Passphrase:            passphrase,
+		SerializedTransaction: ctr.UnsignedTransaction,
+	})
+	if err != nil {
+		return nil, err
+	}
+	var contractTx wire.MsgTx
+	err = contractTx.Deserialize(bytes.NewReader(str.Transaction))
+	if err != nil {
+		return nil, err
+	}
+
+	refundTx, refundFee, err := buildPrivateRefund(ctx, c, contract, &contractTx, args.locktime, args.us, feePerKb, passphrase)
+	if err != nil {
+		return nil, err
+	}
+
+	contractTxHash := contractTx.TxHash()
+	return &builtContract{
+		contract,
+		contractP2SH,
+		&contractTxHash,
+		&contractTx,
+		contractFee,
+		refundTx,
+		refundFee,
+	}, nil
+}
+
+func buildPrivateRefund(ctx context.Context, c pb.WalletServiceClient, contract []byte, contractTx *wire.MsgTx,
+	locktime int64, redeemAddr *stdaddr.AddressPubKeyHashEcdsaSecp256k1V0, feePerKb dcrutil.Amount, passphrase []byte) (
+	refundTx *wire.MsgTx, refundFee dcrutil.Amount, err error) {
+
+	contractP2SH, err := stdaddr.NewAddressScriptHash(scriptVersion, contract, chainParams)
+	if err != nil {
+		return nil, 0, err
+	}
+	_, contractP2SHPkScript := contractP2SH.PaymentScript()
+
+	contractTxHash := contractTx.TxHash()
+	contractOutPoint := wire.OutPoint{Hash: contractTxHash, Index: ^uint32(0)}
+	for i, o := range contractTx.TxOut {
+		if bytes.Equal(o.PkScript, contractP2SHPkScript) {
+			contractOutPoint.Index = uint32(i)
+			break
+		}
+	}
+	if contractOutPoint.Index == ^uint32(0) {
+		return nil, 0, errors.New("contract tx does not contain a P2SH contract payment")
+	}
+
+	nar, err := c.NextAddress(ctx, &pb.NextAddressRequest{
+		Account:   0, // TODO
+		Kind:      pb.NextAddressRequest_BIP0044_INTERNAL,
+		GapPolicy: pb.NextAddressRequest_GAP_POLICY_WRAP,
+	})
+	if err != nil {
+		return nil, 0, err
+	}
+	refundAddress, err := stdaddr.DecodeAddress(nar.Address, chainParams)
+	if err != nil {
+		return nil, 0, err
+	}
+	_, refundOutScript := refundAddress.PaymentScript()
+
+	refundTx = wire.NewMsgTx()
+	refundTx.LockTime = uint32(locktime)
+	refundTx.AddTxOut(wire.NewTxOut(0, refundOutScript)) // amount set below
+	refundSize := estimatePrivateRefundSerializeSize(contract, refundTx.TxOut)
+
+	refundFee = feePerKb * dcrutil.Amount(refundSize) / 1000
+	refundTx.TxOut[0].Value = contractTx.TxOut[contractOutPoint.Index].Value - int64(refundFee)
+
+	txIn := wire.NewTxIn(&contractOutPoint, 0, nil)
+	txIn.Sequence = 0
+	refundTx.AddTxIn(txIn)
+
+	var buf bytes.Buffer
+	buf.Grow(refundTx.SerializeSize())
+	err = refundTx.Serialize(&buf)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	privKeyBytes, err := dumpPrivateKey(ctx, c, redeemAddr.String())
+	if err != nil {
+		return nil, 0, err
+	}
+	defer zeroBytes(privKeyBytes)
+	privKey := secp256k1.PrivKeyFromBytes(privKeyBytes)
+	defer privKey.Zero()
+
+	sigHash, err := txscript.CalcSignatureHash(contract, txscript.SigHashAll, refundTx, int(0), nil)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	sig, err := schnorr.Sign(privKey, sigHash)
+	if err != nil {
+		return nil, 0, err
+	}
+	sigB := append(sig.Serialize(), byte(txscript.SigHashAll))
+	refundSigScript, err := refundPrivateContract(contract, sigB, privKey.PubKey().SerializeCompressed())
+	if err != nil {
+		return nil, 0, err
+	}
+	refundTx.TxIn[0].SignatureScript = refundSigScript
+
+	sigCache, err := txscript.NewSigCache(10)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	if verify {
+		e, err := txscript.NewEngine(contractTx.TxOut[contractOutPoint.Index].PkScript,
+			refundTx, 0, verifyFlags, scriptVersion, sigCache)
+		if err != nil {
+			return nil, 0, err
+		}
+		err = e.Execute()
+		if err != nil {
+			return nil, 0, err
 		}
 	}
 
@@ -720,6 +1187,354 @@ func (cmd *initiateCmd) runCommand(ctx context.Context, c pb.WalletServiceClient
 	return promptPublishTx(ctx, c, contractBuf.Bytes(), "contract")
 }
 
+func (cmd *lockFundsCmd) runCommand(ctx context.Context, c pb.WalletServiceClient) error {
+	passphrase, err := promptPassphase()
+	if err != nil {
+		return err
+	}
+
+	nar, err := c.NextAddress(ctx, &pb.NextAddressRequest{
+		Account:   0, // TODO
+		Kind:      pb.NextAddressRequest_BIP0044_INTERNAL,
+		GapPolicy: pb.NextAddressRequest_GAP_POLICY_WRAP,
+	})
+	if err != nil {
+		return err
+	}
+	decodedAddr, err := stdaddr.DecodeAddress(nar.Address, chainParams)
+	if err != nil {
+		return err
+	}
+	ourAddr, ok := decodedAddr.(*stdaddr.AddressPubKeyHashEcdsaSecp256k1V0)
+	if !ok {
+		return fmt.Errorf("NextAddress: address %v is not P2PKH", decodedAddr)
+	}
+
+	var lockTime int64
+	if cmd.initiator {
+		lockTime = time.Now().Add(48 * time.Hour).Unix()
+	} else {
+		lockTime = time.Now().Add(24 * time.Hour).Unix()
+	}
+
+	b, err := buildPrivateContract(ctx, c, &privateContractArgs{
+		us:       ourAddr,
+		them:     cmd.cpAddr,
+		amount:   cmd.amount,
+		locktime: lockTime,
+	}, passphrase)
+	if err != nil {
+		return err
+	}
+
+	contractFeePerKb := calcFeePerKb(b.contractFee, b.contractTx.SerializeSize())
+	refundTxHash := b.refundTx.TxHash()
+	refundFeePerKb := calcFeePerKb(b.refundFee, b.refundTx.SerializeSize())
+
+	privateKey, err := dumpPrivateKey(ctx, c, ourAddr.String())
+	if err != nil {
+		return err
+	}
+	defer zeroBytes(privateKey)
+	pubKey := secp256k1.PrivKeyFromBytes(privateKey).PubKey()
+
+	fmt.Printf("\nContract fee: %v (%0.8f DCR/kB)\n", b.contractFee, contractFeePerKb)
+	fmt.Printf("Refund fee:   %v (%0.8f DCR/kB)\n\n", b.refundFee, refundFeePerKb)
+	fmt.Printf("Contract (%v):\n", b.contractP2SH)
+	fmt.Printf("%x\n\n", b.contract)
+	fmt.Printf("Your pub key: %x\n\n", pubKey.SerializeCompressed())
+	var contractBuf bytes.Buffer
+	contractBuf.Grow(b.contractTx.SerializeSize())
+	b.contractTx.Serialize(&contractBuf)
+	fmt.Printf("Lock transaction (%v):\n", b.contractTxHash)
+	fmt.Printf("%x\n\n", contractBuf.Bytes())
+	var refundBuf bytes.Buffer
+	refundBuf.Grow(b.refundTx.SerializeSize())
+	b.refundTx.Serialize(&refundBuf)
+	fmt.Printf("Refund transaction (%v):\n", &refundTxHash)
+	fmt.Printf("%x\n\n", refundBuf.Bytes())
+
+	return promptPublishTx(ctx, c, contractBuf.Bytes(), "contract")
+}
+
+func (cmd *unsignedRedemptionCmd) runCommand(ctx context.Context, c pb.WalletServiceClient) error {
+	nar, err := c.NextAddress(ctx, &pb.NextAddressRequest{
+		Account:   0, // TODO
+		Kind:      pb.NextAddressRequest_BIP0044_INTERNAL,
+		GapPolicy: pb.NextAddressRequest_GAP_POLICY_WRAP,
+	})
+	if err != nil {
+		return err
+	}
+	addr, err := stdaddr.DecodeAddress(nar.Address, chainParams)
+	if err != nil {
+		return err
+	}
+	_, outScript := addr.PaymentScript()
+
+	contractOutPoint, err := getContractOutPoint(cmd.cpLockTx, cmd.cpContract)
+	if err != nil {
+		return fmt.Errorf("contract transaction: %v", err)
+	}
+
+	redeemTx := wire.NewMsgTx()
+	redeemTx.AddTxIn(wire.NewTxIn(contractOutPoint, 0, nil))
+	redeemTx.AddTxOut(wire.NewTxOut(0, outScript)) // amount set below
+	redeemSize := estimatePrivateRedeemSerializeSize(cmd.cpContract, redeemTx.TxOut)
+	fee := feePerKb * dcrutil.Amount(redeemSize) / 1000
+	redeemTx.TxOut[0].Value = cmd.cpLockTx.TxOut[contractOutPoint.Index].Value - int64(fee)
+
+	var buf bytes.Buffer
+	buf.Grow(redeemTx.SerializeSize())
+	redeemTx.Serialize(&buf)
+	redeemFeePerKb := calcFeePerKb(fee, redeemSize)
+
+	fmt.Printf("\nRedeem Fee: %v (%0.8f DCR/kB)\n", fee, redeemFeePerKb)
+	fmt.Printf("Unsigned redemption tx bytes:\n%x\n", buf.Bytes())
+
+	return nil
+}
+
+func (cmd *initiateAdaptorCmd) runCommand(ctx context.Context, c pb.WalletServiceClient) error {
+	ourPKH, _, _, err := extractPrivateAtomicSwapDetails(cmd.ourContract)
+	if err != nil {
+		return err
+	}
+	ourAddr, err := stdaddr.NewAddressPubKeyHashEcdsaSecp256k1V0(ourPKH[:], chainParams)
+	if err != nil {
+		return err
+	}
+
+	privKey, err := dumpPrivateKey(ctx, c, ourAddr.String())
+	if err != nil {
+		return err
+	}
+	defer zeroBytes(privKey)
+
+	sigB, err := sign.RawTxInSignature(cmd.cpUnsignedRedeemTx, 0, cmd.ourContract, txscript.SigHashAll,
+		privKey, dcrec.STSchnorrSecp256k1)
+	if err != nil {
+		return err
+	}
+
+	var tBuf [32]byte
+	if _, err := rand.Read(tBuf[:]); err != nil {
+		return err
+	}
+	var tweak secp256k1.ModNScalar
+	tweak.SetBytes(&tBuf)
+
+	sig, err := schnorr.ParseSignature(sigB[:64])
+	if err != nil {
+		return err
+	}
+	adaptorSig := adaptor.PrivateKeyTweakedAdaptorSig(sig, secp256k1.PrivKeyFromBytes(privKey).PubKey(), &tweak)
+	if err != nil {
+		return err
+	}
+
+	fmt.Printf("\nAdaptor Sig:\n%x\n", adaptorSig.Serialize())
+	fmt.Printf("\nTweak:\n%x\n", tBuf)
+
+	return nil
+}
+
+func (cmd *verifyAdaptorCmd) runCommand(ctx context.Context, c pb.WalletServiceClient) error {
+	cpPKH, _, _, err := extractPrivateAtomicSwapDetails(cmd.cpContract)
+	if err != nil {
+		return err
+	}
+	expectedPKH := dcrutil.Hash160(cmd.cpPubKey.SerializeCompressed())
+	if !bytes.Equal(cpPKH[:], expectedPKH) {
+		return fmt.Errorf("counterparty's pubkey does not match contract")
+	}
+
+	ourRedemptionSigHash, err := txscript.CalcSignatureHash(cmd.cpContract, txscript.SigHashAll, cmd.ourUnsignedRedeem, int(0), nil)
+	if err != nil {
+		return err
+	}
+	if err := cmd.cpAdaptorSig.Verify(ourRedemptionSigHash, cmd.cpPubKey); err != nil {
+		return err
+	}
+
+	fmt.Println("\nAdaptor sig is valid!")
+	return nil
+}
+
+func (cmd *participateAdaptorCmd) runCommand(ctx context.Context, c pb.WalletServiceClient) error {
+	ourContractPKH, _, _, err := extractPrivateAtomicSwapDetails(cmd.ourContract)
+	if err != nil {
+		return err
+	}
+	ourContractAddr, err := stdaddr.NewAddressPubKeyHashEcdsaSecp256k1(scriptVersion, ourContractPKH[:], chainParams)
+	if err != nil {
+		return err
+	}
+
+	var buf bytes.Buffer
+	buf.Grow(cmd.ourLockTx.SerializeSize())
+	cmd.ourLockTx.Serialize(&buf)
+
+	privKey, err := dumpPrivateKey(ctx, c, ourContractAddr.String())
+	if err != nil {
+		return err
+	}
+	defer zeroBytes(privKey)
+
+	cpRedemptionSigHash, err := txscript.CalcSignatureHash(cmd.ourContract, txscript.SigHashAll, cmd.cpUnsignedRedemption, 0, nil)
+	if err != nil {
+		return err
+	}
+
+	adaptorSig, err := adaptor.PublicKeyTweakedAdaptorSig(secp256k1.PrivKeyFromBytes(privKey), cpRedemptionSigHash, cmd.cpAdaptor.PublicTweak())
+	if err != nil {
+		return err
+	}
+
+	fmt.Printf("\nAdaptor Sig: %x\n", adaptorSig.Serialize())
+
+	return nil
+}
+
+func (cmd *privateRedeemCmd) runCommand(ctx context.Context, c pb.WalletServiceClient) error {
+	_, ourPKH, _, err := extractPrivateAtomicSwapDetails(cmd.cpContract)
+	if err != nil {
+		return err
+	}
+	ourAddr, err := stdaddr.NewAddressPubKeyHashEcdsaSecp256k1(scriptVersion, ourPKH[:], chainParams)
+	if err != nil {
+		return err
+	}
+
+	hash, err := txscript.CalcSignatureHash(cmd.cpContract, txscript.SigHashAll, cmd.unsignedRedemption, 0, nil)
+	if err != nil {
+		return err
+	}
+
+	cpSignature, err := cmd.cpAdaptor.Decrypt(cmd.tweak, hash)
+	if err != nil {
+		return err
+	}
+
+	ourRedemptionSigHash, err := txscript.CalcSignatureHash(cmd.cpContract, txscript.SigHashAll, cmd.unsignedRedemption, int(0), nil)
+	if err != nil {
+		return err
+	}
+
+	privKeyBytes, err := dumpPrivateKey(ctx, c, ourAddr.String())
+	if err != nil {
+		return err
+	}
+	defer zeroBytes(privKeyBytes)
+	privKey := secp256k1.PrivKeyFromBytes(privKeyBytes)
+	defer privKey.Zero()
+
+	ourRedeemSig, err := schnorr.Sign(privKey, ourRedemptionSigHash)
+	if err != nil {
+		return err
+	}
+
+	ourSigB := append(ourRedeemSig.Serialize(), byte(txscript.SigHashAll))
+	cpSigB := append(cpSignature.Serialize(), byte(txscript.SigHashAll))
+	redeemContract, err := redeemPrivateContract(cmd.cpContract, privKey.PubKey().SerializeCompressed(),
+		ourSigB, cmd.cpPubKey.SerializeCompressed(), cpSigB)
+	if err != nil {
+		return err
+	}
+
+	redeemTx := cmd.unsignedRedemption
+	redeemTx.TxIn[0].SignatureScript = redeemContract
+
+	if verify {
+		op, err := getContractOutPoint(cmd.cpLockTx, cmd.cpContract)
+		if err != nil {
+			return err
+		}
+		sigCache, err := txscript.NewSigCache(10)
+		if err != nil {
+			return err
+		}
+		e, err := txscript.NewEngine(cmd.cpLockTx.TxOut[int(op.Index)].PkScript,
+			redeemTx, 0, verifyFlags, scriptVersion, sigCache)
+		if err != nil {
+			return err
+		}
+		err = e.Execute()
+		if err != nil {
+			return err
+		}
+	}
+
+	return promptPublishTx(ctx, c, serializeTx(redeemTx), "redeem")
+}
+
+func (cmd *extractTweakCmd) runCommand(ctx context.Context, c pb.WalletServiceClient) error {
+	_, _, _, sigThem, err := parseRedeemPrivateContract(cmd.cpRedeemTx.TxIn[0].SignatureScript)
+	if err != nil {
+		return err
+	}
+	sig, err := schnorr.ParseSignature(sigThem[:64])
+	if err != nil {
+		return err
+	}
+	tweak, err := cmd.ourAdaptor.RecoverTweak(sig)
+	if err != nil {
+		return err
+	}
+
+	tweakBytes := tweak.Bytes()
+	fmt.Printf("\nRecovered tweak:\n%x\n", tweakBytes[:])
+	return nil
+}
+
+func (cmd *auditPrivateContractCmd) runCommand(ctx context.Context, c pb.WalletServiceClient) error {
+	creatorPKH, participantPKH, lockTime, err := extractPrivateAtomicSwapDetails(cmd.cpContract)
+	if err != nil {
+		return err
+	}
+
+	creatorAddr, err := stdaddr.NewAddressPubKeyHashEcdsaSecp256k1(scriptVersion, creatorPKH[:], chainParams)
+	if err != nil {
+		return err
+	}
+
+	participantAddr, err := stdaddr.NewAddressPubKeyHashEcdsaSecp256k1(scriptVersion, participantPKH[:], chainParams)
+	if err != nil {
+		return err
+	}
+
+	contractP2SH, err := stdaddr.NewAddressScriptHash(scriptVersion, cmd.cpContract, chainParams)
+	if err != nil {
+		return err
+	}
+
+	outpoint, err := getContractOutPoint(cmd.cpLockTx, cmd.cpContract)
+	if err != nil {
+		return err
+	}
+	output := cmd.cpLockTx.TxOut[int(outpoint.Index)]
+
+	fmt.Printf("\nContract address: %v\n", contractP2SH.String())
+	fmt.Printf("Contract value: %v\n", dcrutil.Amount(output.Value))
+	fmt.Printf("Creator address: %v\n", creatorAddr.String())
+	fmt.Printf("Participant address: %v\n", participantAddr.String())
+
+	if lockTime >= int64(txscript.LockTimeThreshold) {
+		t := time.Unix(lockTime, 0)
+		fmt.Printf("Locktime: %v\n", t.UTC())
+		reachedAt := time.Until(t).Truncate(time.Second)
+		if reachedAt > 0 {
+			fmt.Printf("Locktime reached in %v\n", reachedAt)
+		} else {
+			fmt.Printf("Contract refund time lock has expired\n")
+		}
+	} else {
+		fmt.Printf("Locktime: block %v\n", lockTime)
+	}
+
+	return nil
+}
+
 func (cmd *participateCmd) runCommand(ctx context.Context, c pb.WalletServiceClient) error {
 	// locktime after 500,000,000 (Tue Nov  5 00:53:20 1985 UTC) is interpreted
 	// as a unix time rather than a block height.
@@ -764,25 +1579,25 @@ func (cmd *participateCmd) runCommand(ctx context.Context, c pb.WalletServiceCli
 }
 
 func (cmd *redeemCmd) runCommand(ctx context.Context, c pb.WalletServiceClient) error {
-	pushes, err := txscript.ExtractAtomicSwapDataPushes(
-		scriptVersion, cmd.contract)
-	if err != nil {
-		return err
+	pushes := stdscript.ExtractAtomicSwapDataPushesV0(cmd.contract)
+	if pushes == nil {
+		return fmt.Errorf("invalid atomic swap script")
 	}
 	if pushes == nil {
 		return errors.New("contract is not an atomic swap script recognized by this tool")
 	}
-	recipientAddr, err := dcrutil.NewAddressPubKeyHash(pushes.RecipientHash160[:],
-		chainParams, dcrec.STEcdsaSecp256k1)
+	recipientAddr, err := stdaddr.NewAddressPubKeyHashEcdsaSecp256k1(scriptVersion, pushes.RecipientHash160[:], chainParams)
 	if err != nil {
 		return err
 	}
-	contractHash := dcrutil.Hash160(cmd.contract)
+	contractHash := stdaddr.Hash160(cmd.contract)
 	contractOut := -1
 	for i, out := range cmd.contractTx.TxOut {
-		sc, addrs, _, _ := txscript.ExtractPkScriptAddrs(out.Version, out.PkScript,
-			chainParams, isTreasuryEnabled)
-		if sc == txscript.ScriptHashTy && bytes.Equal(addrs[0].Hash160()[:], contractHash) {
+		scriptHash := txscript.ExtractScriptHash(out.PkScript)
+		if scriptHash == nil {
+			continue
+		}
+		if bytes.Equal(scriptHash, contractHash) {
 			contractOut = i
 			break
 		}
@@ -799,14 +1614,11 @@ func (cmd *redeemCmd) runCommand(ctx context.Context, c pb.WalletServiceClient) 
 	if err != nil {
 		return err
 	}
-	addr, err := dcrutil.DecodeAddress(nar.Address, chainParams)
+	addr, err := stdaddr.DecodeAddress(nar.Address, chainParams)
 	if err != nil {
 		return err
 	}
-	outScript, err := txscript.PayToAddrScript(addr)
-	if err != nil {
-		return err
-	}
+	_, outScript := addr.PaymentScript()
 
 	contractTxHash := cmd.contractTx.TxHash()
 	contractOutPoint := wire.OutPoint{
@@ -837,7 +1649,7 @@ func (cmd *redeemCmd) runCommand(ctx context.Context, c pb.WalletServiceClient) 
 
 	redeemSig, err := c.CreateSignature(ctx, &pb.CreateSignatureRequest{
 		Passphrase:            passphrase,
-		Address:               recipientAddr.Address(),
+		Address:               recipientAddr.String(),
 		SerializedTransaction: buf.Bytes(),
 		InputIndex:            0,
 		HashType:              pb.CreateSignatureRequest_SIGHASH_ALL,
@@ -854,7 +1666,7 @@ func (cmd *redeemCmd) runCommand(ctx context.Context, c pb.WalletServiceClient) 
 	redeemTx.TxIn[0].SignatureScript = redeemSigScript
 
 	redeemTxHash := redeemTx.TxHash()
-	redeemFeePerKb := calcFeePerKb(fee, redeemTx.SerializeSize())
+	redeemFeePerKb := calcFeePerKb(dcrutil.Amount(fee.ToCoin()), redeemTx.SerializeSize())
 
 	buf.Reset()
 	buf.Grow(redeemTx.SerializeSize())
@@ -885,10 +1697,9 @@ func (cmd *redeemCmd) runCommand(ctx context.Context, c pb.WalletServiceClient) 
 }
 
 func (cmd *refundCmd) runCommand(ctx context.Context, c pb.WalletServiceClient) error {
-	pushes, err := txscript.ExtractAtomicSwapDataPushes(
-		scriptVersion, cmd.contract)
-	if err != nil {
-		return err
+	pushes := stdscript.ExtractAtomicSwapDataPushesV0(cmd.contract)
+	if pushes == nil {
+		return fmt.Errorf("invalid atomic swap script")
 	}
 	if pushes == nil {
 		return errors.New("contract is not an atomic swap script recognized by this tool")
@@ -929,13 +1740,11 @@ func (cmd *extractSecretCmd) runOfflineCommand() error {
 	// contract with some "nonstandard" or unrecognized transaction or script
 	// type.
 	for _, in := range cmd.redemptionTx.TxIn {
-		pushes, err := txscript.PushedData(in.SignatureScript)
-		if err != nil {
-			return err
-		}
-		for _, push := range pushes {
-			if bytes.Equal(sha256Hash(push), cmd.secretHash) {
-				fmt.Printf("Secret: %x\n", push)
+		tokenizer := txscript.MakeScriptTokenizer(scriptVersion, in.SignatureScript)
+		for tokenizer.Next() {
+			data := tokenizer.Data()
+			if data != nil && bytes.Equal(sha256Hash(data), cmd.secretHash) {
+				fmt.Printf("Secret: %x\n", data)
 				return nil
 			}
 		}
@@ -951,12 +1760,11 @@ func (cmd *auditContractCmd) runOfflineCommand() error {
 	contractHash160 := dcrutil.Hash160(cmd.contract)
 	contractOut := -1
 	for i, out := range cmd.contractTx.TxOut {
-		sc, addrs, _, err := txscript.ExtractPkScriptAddrs(out.Version, out.PkScript,
-			chainParams, isTreasuryEnabled)
-		if err != nil || sc != txscript.ScriptHashTy {
+		scriptHash := txscript.ExtractScriptHash(out.PkScript)
+		if scriptHash == nil {
 			continue
 		}
-		if bytes.Equal(addrs[0].(*dcrutil.AddressScriptHash).Hash160()[:], contractHash160) {
+		if bytes.Equal(scriptHash, contractHash160) {
 			contractOut = i
 			break
 		}
@@ -965,9 +1773,9 @@ func (cmd *auditContractCmd) runOfflineCommand() error {
 		return errors.New("transaction does not contain the contract output")
 	}
 
-	pushes, err := txscript.ExtractAtomicSwapDataPushes(scriptVersion, cmd.contract)
-	if err != nil {
-		return err
+	pushes := stdscript.ExtractAtomicSwapDataPushesV0(cmd.contract)
+	if pushes == nil {
+		return fmt.Errorf("invalid atomic swap script")
 	}
 	if pushes == nil {
 		return errors.New("contract is not an atomic swap script recognized by this tool")
@@ -976,17 +1784,15 @@ func (cmd *auditContractCmd) runOfflineCommand() error {
 		return fmt.Errorf("contract specifies strange secret size %v", pushes.SecretSize)
 	}
 
-	contractAddr, err := dcrutil.NewAddressScriptHash(cmd.contract, chainParams)
+	contractAddr, err := stdaddr.NewAddressScriptHash(scriptVersion, cmd.contract, chainParams)
 	if err != nil {
 		return err
 	}
-	recipientAddr, err := dcrutil.NewAddressPubKeyHash(pushes.RecipientHash160[:],
-		chainParams, dcrec.STEcdsaSecp256k1)
+	recipientAddr, err := stdaddr.NewAddressPubKeyHashEcdsaSecp256k1(scriptVersion, pushes.RecipientHash160[:], chainParams)
 	if err != nil {
 		return err
 	}
-	refundAddr, err := dcrutil.NewAddressPubKeyHash(pushes.RefundHash160[:],
-		chainParams, dcrec.STEcdsaSecp256k1)
+	refundAddr, err := stdaddr.NewAddressPubKeyHashEcdsaSecp256k1(scriptVersion, pushes.RefundHash160[:], chainParams)
 	if err != nil {
 		return err
 	}
@@ -1017,9 +1823,9 @@ func (cmd *auditContractCmd) runOfflineCommand() error {
 // atomicSwapContract returns an output script that may be redeemed by one of
 // two signature scripts:
 //
-//   <their sig> <their pubkey> <initiator secret> 1
+//	<their sig> <their pubkey> <initiator secret> 1
 //
-//   <my sig> <my pubkey> 0
+//	<my sig> <my pubkey> 0
 //
 // The first signature script is the normal redemption path done by the other
 // party and requires the initiator's secret.  The second signature script is
@@ -1073,6 +1879,113 @@ func atomicSwapContract(pkhMe, pkhThem *[ripemd160.Size]byte, locktime int64, se
 	return b.Script()
 }
 
+func privateAtomicSwapContract(us, them [ripemd160.Size]byte, locktime int64) ([]byte, error) {
+	b := txscript.NewScriptBuilder()
+
+	b.AddOp(txscript.OP_IF) // Normal redeem path
+	{
+		b.AddOp(txscript.OP_DUP)
+		b.AddOp(txscript.OP_HASH160)
+		b.AddData(them[:])
+		b.AddOp(txscript.OP_EQUALVERIFY)
+		b.AddOp(txscript.OP_2)
+		b.AddOp(txscript.OP_CHECKSIGALTVERIFY)
+	}
+	b.AddOp(txscript.OP_ELSE) // Refund path
+	{
+		b.AddInt64(locktime)
+		b.AddOp(txscript.OP_CHECKLOCKTIMEVERIFY)
+		b.AddOp(txscript.OP_DROP)
+	}
+	b.AddOp(txscript.OP_ENDIF)
+	b.AddOp(txscript.OP_DUP)
+	b.AddOp(txscript.OP_HASH160)
+	b.AddData(us[:])
+	b.AddOp(txscript.OP_EQUALVERIFY)
+	b.AddOp(txscript.OP_2)
+	b.AddOp(txscript.OP_CHECKSIGALT)
+
+	script, err := b.Script()
+	if err != nil {
+		return nil, err
+	}
+
+	return script, nil
+}
+
+func extractPrivateAtomicSwapDetails(script []byte) (creator, participant [ripemd160.Size]byte, locktime int64, err error) {
+	if len(script) != 62 {
+		err = fmt.Errorf("invalid swap contract: length = %v", len(script))
+		return
+	}
+
+	if script[0] == txscript.OP_IF &&
+		script[1] == txscript.OP_DUP &&
+		script[2] == txscript.OP_HASH160 &&
+		script[3] == txscript.OP_DATA_20 &&
+		// creator's (20 bytes)
+		script[24] == txscript.OP_EQUALVERIFY &&
+		script[25] == txscript.OP_2 &&
+		script[26] == txscript.OP_CHECKSIGALTVERIFY &&
+		script[27] == txscript.OP_ELSE &&
+		script[28] == txscript.OP_DATA_4 &&
+		// lockTime (4 bytes)
+		script[33] == txscript.OP_CHECKLOCKTIMEVERIFY &&
+		script[34] == txscript.OP_DROP &&
+		script[35] == txscript.OP_ENDIF &&
+		script[36] == txscript.OP_DUP &&
+		script[37] == txscript.OP_HASH160 &&
+		script[38] == txscript.OP_DATA_20 &&
+
+		// participant's pkh (20 bytes)
+		script[59] == txscript.OP_EQUALVERIFY &&
+		script[60] == txscript.OP_2 &&
+		script[61] == txscript.OP_CHECKSIGALT {
+		copy(participant[:], script[4:24])
+		copy(creator[:], script[39:59])
+		locktime = int64(binary.LittleEndian.Uint32(script[29:33]))
+	} else {
+		err = fmt.Errorf("invalid swap contract")
+	}
+
+	return
+}
+
+func redeemPrivateContract(contract, pkUs, sigUs, pkThem, sigThem []byte) ([]byte, error) {
+	b := txscript.NewScriptBuilder()
+
+	b.AddData(sigThem)
+	b.AddData(pkThem)
+	b.AddData(sigUs)
+	b.AddData(pkUs)
+	b.AddInt64(1)
+	b.AddData(contract)
+	return b.Script()
+}
+
+func parseRedeemPrivateContract(script []byte) (pkUs, sigUs, pkThem, sigThem []byte, err error) {
+	if len(script) < redeemPrivateAtomicSwapSigScriptSize {
+		err = fmt.Errorf("invalid swap redemption: length = %v", len(script))
+		return
+	}
+
+	sigThem = script[1:66]
+	pkThem = script[67:100]
+	sigUs = script[101:167]
+	pkUs = script[168:201]
+
+	return
+}
+
+func refundPrivateContract(contract, sig, pubkey []byte) ([]byte, error) {
+	b := txscript.NewScriptBuilder()
+	b.AddData(sig)
+	b.AddData(pubkey)
+	b.AddInt64(0)
+	b.AddData(contract)
+	return b.Script()
+}
+
 // redeemP2SHContract returns the signature script to redeem a contract output
 // using the redeemer's signature and the initiator's secret.  This function
 // assumes P2SH and appends the contract as the final data push.
@@ -1096,4 +2009,54 @@ func refundP2SHContract(contract, sig, pubkey []byte) ([]byte, error) {
 	b.AddInt64(0)
 	b.AddData(contract)
 	return b.Script()
+}
+
+func dumpPrivateKey(ctx context.Context, c pb.WalletServiceClient, address string) ([]byte, error) {
+	privateKey, err := c.DumpPrivateKey(ctx, &pb.DumpPrivateKeyRequest{
+		Address: address,
+	})
+	if err != nil {
+		return nil, err
+	}
+	defer func() { privateKey.PrivateKeyWif = "" }()
+
+	wif, err := dcrutil.DecodeWIF(privateKey.PrivateKeyWif, chainParams.PrivateKeyID)
+	if err != nil {
+		return nil, err
+	}
+
+	return wif.PrivKey(), nil
+}
+
+func zeroBytes(b []byte) {
+	for i := range b {
+		b[i] = 0
+	}
+}
+
+func getContractOutPoint(tx *wire.MsgTx, contract []byte) (*wire.OutPoint, error) {
+	contractAddr, err := stdaddr.NewAddressScriptHash(scriptVersion, contract, chainParams)
+	if err != nil {
+		return nil, err
+	}
+	_, script := contractAddr.PaymentScript()
+	contractTxHash := tx.TxHash()
+	contractOutPoint := wire.OutPoint{Hash: contractTxHash, Index: ^uint32(0)}
+	for i, o := range tx.TxOut {
+		if bytes.Equal(o.PkScript, script) {
+			contractOutPoint.Index = uint32(i)
+			break
+		}
+	}
+	if contractOutPoint.Index == ^uint32(0) {
+		return nil, errors.New("contract tx does not contain a P2SH contract payment")
+	}
+	return &contractOutPoint, nil
+}
+
+func serializeTx(tx *wire.MsgTx) []byte {
+	var buf bytes.Buffer
+	buf.Grow(tx.SerializeSize())
+	tx.Serialize(&buf)
+	return buf.Bytes()
 }
